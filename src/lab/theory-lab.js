@@ -56,9 +56,14 @@ export class TheoryLab {
       .map((r) => {
         const predicted = r.result.value;
         const simulated = r.result.simValue;
-        const diff = simulated !== 0 ? Math.abs((predicted - simulated) / simulated) * 100 : 0;
-        return { name: r.name, predicted, simulated, diffPercent: diff };
-      });
+        let diffPercent = NaN;
+        if (Number.isFinite(predicted) && Number.isFinite(simulated)) {
+          const denom = Math.max(Math.abs(simulated), 1e-30);
+          diffPercent = Math.abs((predicted - simulated) / denom) * 100;
+        }
+        return { name: r.name, predicted, simulated, diffPercent };
+      })
+      .filter((c) => Number.isFinite(c.diffPercent) || c.predicted === c.simulated);
   }
 }
 

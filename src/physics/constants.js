@@ -6,8 +6,16 @@ export const PARSEC = 3.086e16;
 export const MPC = 1e6 * PARSEC;
 export const KM_PER_S_TO_M_PER_S = 1000;
 
-/** Parámetros cosmológicos ΛCDM por defecto */
+/** Parámetros cosmológicos ΛCDM — Planck 2018 (valores observacionales) */
 export const DEFAULT_COSMOLOGY = {
+  H0: 67.4,
+  OmegaM: 0.315,
+  OmegaLambda: 0.685,
+  OmegaK: 0,
+};
+
+/** Alias legado ΛCDM aproximado */
+export const LCDM_APPROX = {
   H0: 70,
   OmegaM: 0.3,
   OmegaLambda: 0.7,

@@ -12,9 +12,9 @@ export const DEFAULT_STATE = {
   showGeodesics: true,
   showLensing: true,
   lifeEnabled: true,
-  realismMode: 'standard',
+  realismMode: 'realistic',
   theoryId: DEFAULT_THEORY,
-  cosmoPreset: 'lcdm',
+  cosmoPreset: 'planck2018',
 };
 
 export class ResetManager {
@@ -71,7 +71,7 @@ export class ResetManager {
     universe.showExpansion = d.showExpansion;
     universe.showGeodesics = d.showGeodesics;
     universe.showLensing = d.showLensing;
-    universe.realismMode = d.realismMode ?? 'standard';
+    universe.realismMode = d.realismMode ?? 'realistic';
     universe.setCosmology({ ...d.cosmology });
     universe.cosmology.reset();
     universe._initParticles();

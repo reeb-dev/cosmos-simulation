@@ -1,3 +1,5 @@
+import { t, getBundle } from '../i18n/i18n.js';
+
 const DEFAULT_CAMERA = { x: 0, y: 40, z: 120, tx: 0, ty: 0, tz: 0 };
 
 export function createCameraLife(controls, camera) {
@@ -43,15 +45,20 @@ export function createCameraLife(controls, camera) {
   return { update, resetIdle, resetCamera, setEnabled };
 }
 
+function getPhaseLabels() {
+  return getBundle('panels.life.phases') ?? {};
+}
+
 export function updateLifePanel(lifeEngine, binarySim = null, isBinary = false) {
   const el = document.getElementById('life-panel');
   if (!el) return;
+  const body = el.querySelector('.panel-body') || el;
 
   if (isBinary && binarySim) {
     const eventsHtml = binarySim.events.slice(0, 5).map((e) => `<div class="life-event">${e.text}</div>`).join('')
-      || '<div class="life-event dim">Esperando colisión binaria...</div>';
+      || `<div class="life-event dim">${t('panels.life.waitingBinary')}</div>`;
     const r = binarySim.getReadouts();
-    el.innerHTML = `
+    body.innerHTML = `
       <div class="life-header">
         <span class="life-phase">⚫ ${r.phase}</span>
         <span class="life-age">M₁=${r.m1} M₂=${r.m2} M☉</span>
@@ -62,18 +69,12 @@ export function updateLifePanel(lifeEngine, binarySim = null, isBinary = false) 
     return;
   }
 
-  const phaseLabels = {
-    nacimiento: '🌌 Nacimiento',
-    infancia: '✨ Infancia',
-    madurez: '🌀 Madurez',
-    'vejez cósmica': '♾️ Vejez',
-  };
-
+  const phaseLabels = getPhaseLabels();
   const pulseBar = '█'.repeat(Math.floor(lifeEngine.pulse * 10)) + '░'.repeat(10 - Math.floor(lifeEngine.pulse * 10));
   const eventsHtml = lifeEngine.events.slice(0, 5).map((e) => `<div class="life-event">${e.text}</div>`).join('')
-    || '<div class="life-event dim">El cosmos despierta...</div>';
+    || `<div class="life-event dim">${t('panels.life.awakening')}</div>`;
 
-  el.innerHTML = `
+  body.innerHTML = `
     <div class="life-header">
       <span class="life-phase">${phaseLabels[lifeEngine.phase] ?? lifeEngine.phase}</span>
       <span class="life-age">${lifeEngine.enabled ? '' : '⏸ '}${formatAge(lifeEngine.age)}</span>

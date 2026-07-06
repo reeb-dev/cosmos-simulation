@@ -98,7 +98,7 @@ export const MODE_PHYSICS_METADATA = {
   cosmology: {
     name: 'Cosmología ΛCDM',
     validated: ['H(a)', 'z(a)', 'edad cósmica', 'd_c'],
-    visualOnly: ['campo galáctico procedural', 'CMB sin anisotropías Planck'],
+    visualOnly: ['campo galáctico procedural', 'CMB Planck (anisotropías procedurales)'],
     metadata: ['friedmann_h', 'comoving_distance'],
   },
   binary_merger: {

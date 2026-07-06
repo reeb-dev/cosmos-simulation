@@ -30,14 +30,15 @@ const LensingShader = {
     uniform float spin;
     varying vec2 vUv;
 
-    vec2 lensUv(vec2 uv, float strength) {
+    vec2 gravLens(vec2 uv, float strength) {
       vec2 toBH = uv - blackHoleScreenPos;
       float dist = length(toBH);
-      if (dist < rsScreen * 0.5) return uv;
-      float alpha = strength / (dist + 0.001);
-      float deflection = alpha * (1.0 + spin * 0.3);
-      vec2 tangent = vec2(-toBH.y, toBH.x);
-      return uv - normalize(toBH) * deflection + tangent * spin * deflection * 0.2;
+      if (dist < rsScreen * 0.25) return uv;
+      vec2 dir = toBH / max(dist, 1e-5);
+      float bend = strength / pow(dist + 0.0015, 1.25);
+      bend *= 1.0 + spin * 0.25;
+      vec2 tangent = vec2(-dir.y, dir.x);
+      return uv - dir * bend + tangent * spin * bend * 0.15;
     }
 
     void main() {
@@ -47,25 +48,33 @@ const LensingShader = {
       vec2 toBH = vUv - blackHoleScreenPos;
       float dist = length(toBH);
 
-      vec2 uv1 = lensUv(vUv, lensStrength);
-      vec2 uv2 = lensUv(vUv, lensStrength * 0.5);
-      vec4 col = texture2D(tDiffuse, clamp(uv1, 0.0, 1.0)) * 0.6
-               + texture2D(tDiffuse, clamp(uv2, 0.0, 1.0)) * 0.4;
+      vec2 uvA = gravLens(vUv, lensStrength);
+      vec2 uvB = gravLens(vUv, lensStrength * 0.65);
+      vec2 uvC = gravLens(vUv, lensStrength * 0.35);
+      vec4 col = texture2D(tDiffuse, clamp(uvA, 0.0, 1.0)) * 0.5
+               + texture2D(tDiffuse, clamp(uvB, 0.0, 1.0)) * 0.32
+               + texture2D(tDiffuse, clamp(uvC, 0.0, 1.0)) * 0.18;
 
-      if (dist < rsScreen * 0.35) {
-        float shadow = smoothstep(rsScreen * 0.08, rsScreen * 0.3, dist);
-        col.rgb *= shadow;
-        gl_FragColor = col;
-        return;
+      float shadowRad = rsScreen * 0.42;
+      float shadow = smoothstep(shadowRad * 0.55, shadowRad * 1.05, dist);
+      col.rgb *= shadow;
+
+      if (dist < shadowRad * 1.2) {
+        col.rgb *= smoothstep(shadowRad * 0.15, shadowRad * 0.5, dist);
       }
 
-      float einsteinRing = smoothstep(einsteinScreen * 0.92, einsteinScreen, dist)
-                         * smoothstep(einsteinScreen * 1.35, einsteinScreen * 1.05, dist);
-      col.rgb += vec3(1.0, 0.6, 0.15) * einsteinRing * 0.55;
+      float einsteinRing = smoothstep(einsteinScreen * 0.94, einsteinScreen, dist)
+                         * smoothstep(einsteinScreen * 1.28, einsteinScreen * 1.02, dist);
+      col.rgb += vec3(1.0, 0.72, 0.35) * einsteinRing * 0.55;
 
-      float photonRing = smoothstep(rsScreen * 1.4, rsScreen * 1.5, dist)
-                       * smoothstep(rsScreen * 1.7, rsScreen * 1.55, dist);
-      col.rgb += vec3(1.0, 0.9, 0.5) * photonRing * 0.35;
+      float photonRing = smoothstep(rsScreen * 1.38, rsScreen * 1.48, dist)
+                       * smoothstep(rsScreen * 1.62, rsScreen * 1.52, dist);
+      col.rgb += vec3(1.0, 0.95, 0.88) * photonRing * 0.45;
+
+      float verticalSmear = exp(-pow(abs(toBH.x) / max(rsScreen * 2.5, 0.01), 2.0) * 0.5);
+      verticalSmear *= smoothstep(rsScreen * 3.5, rsScreen * 0.8, dist);
+      col.rgb += texture2D(tDiffuse, clamp(vUv + vec2(0.0, toBH.y * lensStrength * 2.5), 0.0, 1.0)).rgb
+               * verticalSmear * 0.12;
 
       gl_FragColor = col;
     }
@@ -83,24 +92,34 @@ export function createLensingPass(renderer, scene, camera) {
   const size = renderer.getSize(new THREE.Vector2());
   composer.setSize(size.x, size.y);
 
-  function update(cam, bhWorldPos, enabled, rsVis, spin = 0) {
-    lensingPass.uniforms.enabled.value = enabled ? 1.0 : 0.0;
+  function update(cam, bhWorldPos, enabled, rsVis, spin = 0, lensMul = 1) {
+    const screenPos = bhWorldPos.clone().project(cam);
+    const onScreen =
+      Number.isFinite(screenPos.x) &&
+      Number.isFinite(screenPos.y) &&
+      screenPos.z <= 1 &&
+      screenPos.z >= -1;
+
+    if (!enabled || !onScreen) {
+      lensingPass.uniforms.enabled.value = 0.0;
+      return;
+    }
+
+    lensingPass.uniforms.enabled.value = 1.0;
     lensingPass.uniforms.spin.value = spin;
 
-    const screenPos = bhWorldPos.clone().project(cam);
     lensingPass.uniforms.blackHoleScreenPos.value.set(
       (screenPos.x + 1) / 2,
       (screenPos.y + 1) / 2
     );
 
-    const dist = Math.max(cam.position.distanceTo(bhWorldPos), rsVis * 1.2);
-    const rsScreen = Math.min(0.08, Math.max(0.006, (rsVis / dist) * 1.2));
+    const dist = Math.max(cam.position.distanceTo(bhWorldPos), rsVis * 2.0);
+    const rsScreen = Math.min(0.14, Math.max(0.008, (rsVis / dist) * 1.45));
     lensingPass.uniforms.rsScreen.value = rsScreen;
-  lensingPass.uniforms.lensStrength.value = Math.min(0.07, (rsVis / dist) * 0.18);
+    lensingPass.uniforms.lensStrength.value = Math.min(0.14, (rsVis / dist) * 0.32) * lensMul;
 
-    // Radio de Einstein θ_E ≈ 2rₛ/d → escala en pantalla proporcional a rₛ/d
     const einsteinAngle = (2 * rsVis) / dist;
-    const einsteinScreen = Math.min(0.15, Math.max(rsScreen * 1.8, einsteinAngle * 0.85));
+    const einsteinScreen = Math.min(0.2, Math.max(rsScreen * 2.0, einsteinAngle * 0.95));
     lensingPass.uniforms.einsteinScreen.value = einsteinScreen;
   }
 

@@ -29,23 +29,71 @@
         height: 100%;
       }
       :root {
-        --left-col: 300px;
+        --left-col: 280px;
         --right-col: 290px;
-        --hud-top: 12px;
+        --hud-top: 72px;
         --panel-gap: 8px;
+        --top-ui: 72px;
+        --dock-h: 58px;
+        --gui-w: 290px;
       }
-      #hud {
+      #left-stack {
         position: fixed;
-        top: var(--hud-top);
+        top: var(--top-ui);
         left: 12px;
         width: var(--left-col);
+        display: flex;
+        flex-direction: column;
+        gap: var(--panel-gap);
+        z-index: 12;
+        max-height: calc(100vh - var(--top-ui) - var(--dock-h) - 20px);
+        overflow-y: auto;
+        pointer-events: none;
+      }
+      #left-stack > * {
+        position: relative;
+        top: auto;
+        left: auto;
+        bottom: auto;
+        width: 100%;
+        pointer-events: auto;
+        flex-shrink: 0;
+      }
+      #hud {
         color: #a8d4ff;
         font-size: 11px;
-        line-height: 1.5;
-        pointer-events: none;
-        text-shadow: 0 0 8px rgba(0, 100, 200, 0.8);
-        z-index: 12;
-        max-width: var(--left-col);
+        line-height: 1.45;
+        max-width: 100%;
+        max-height: 96px;
+        overflow-y: auto;
+        background: rgba(4, 8, 20, 0.82);
+        border: 1px solid rgba(100, 160, 255, 0.2);
+        border-radius: 8px;
+        padding: 6px 10px 8px;
+        backdrop-filter: blur(6px);
+      }
+      #hud.hud-expanded {
+        max-height: 200px;
+      }
+      #hud .hud-tagline {
+        display: none;
+      }
+      #hud .hud-top-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      #hud-toggle {
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(150,180,255,0.25);
+        border-radius: 4px;
+        color: #a8c4e8;
+        cursor: pointer;
+        font-size: 9px;
+        padding: 2px 6px;
+        line-height: 1;
       }
       #hud h1 {
         font-size: 14px;
@@ -82,7 +130,50 @@
         font-size: 10px;
         color: #8899bb;
         z-index: 11;
-        pointer-events: none;
+        pointer-events: auto;
+        transition: opacity 0.5s ease;
+        max-width: calc(100vw - 24px);
+        text-align: center;
+      }
+      #help-bar.faded {
+        opacity: 0.2;
+      }
+      #help-bar:hover {
+        opacity: 1 !important;
+      }
+      #lang-toggle {
+        background: rgba(8, 16, 40, 0.9);
+        border: 1px solid rgba(100, 180, 255, 0.35);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #a8d4ff;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+      }
+      #lang-toggle:hover {
+        background: rgba(20, 40, 80, 0.95);
+        color: #fff;
+      }
+      #top-toolbar {
+        position: fixed;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 55;
+      }
+      #top-toolbar #guide-toggle {
+        position: static;
+        top: auto;
+        right: auto;
+      }
+      #top-toolbar #lang-toggle {
+        position: static;
+        top: auto;
+        right: auto;
       }
       #help-bar kbd {
         background: rgba(255,255,255,0.1);
@@ -266,7 +357,8 @@
           max-height: 36vh;
         }
       }
-      #reset-toast {
+      #reset-toast,
+      #app-toast {
         position: fixed;
         top: 40px;
         left: 50%;
@@ -282,16 +374,15 @@
         transition: opacity 0.3s, transform 0.3s;
         pointer-events: none;
       }
-      #reset-toast.visible {
+      #reset-toast.visible,
+      #app-toast.visible {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
       #theory-panel {
-        position: fixed;
-        bottom: 16px;
-        left: 12px;
-        width: var(--left-col);
-        max-height: 38vh;
+        flex: 1;
+        min-height: 0;
+        max-height: min(36vh, 280px);
         background: rgba(4, 8, 24, 0.92);
         border: 1px solid rgba(100, 160, 255, 0.25);
         border-radius: 10px;
@@ -309,7 +400,7 @@
         padding: 0 14px 12px;
         overflow-y: auto;
         flex: 1;
-        pointer-events: none;
+        pointer-events: auto;
       }
       #theory-panel h2 {
         font-size: 15px;
@@ -401,18 +492,26 @@
       }
       #life-panel {
         position: fixed;
-        bottom: 16px;
-        right: 16px;
-        width: 260px;
+        bottom: var(--dock-h);
+        right: calc(var(--gui-w) + 12px);
+        width: 220px;
+        max-height: min(28vh, 200px);
         background: rgba(4, 12, 8, 0.9);
         border: 1px solid rgba(80, 200, 120, 0.25);
         border-radius: 10px;
-        padding: 12px 14px;
         color: #a8e8c0;
         font-size: 11px;
         z-index: 10;
         backdrop-filter: blur(8px);
-        pointer-events: none;
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #life-panel .panel-body {
+        padding: 0 12px 10px;
+        overflow-y: auto;
+        flex: 1;
       }
       #life-panel .life-header {
         display: flex;
@@ -452,12 +551,8 @@
         to { opacity: 1; transform: translateY(0); }
       }
       #lab-panel {
-        position: fixed;
-        top: 118px;
-        left: 12px;
-        width: var(--left-col);
-        max-height: calc(100vh - 118px - 38vh - 48px);
-        min-height: 80px;
+        max-height: min(28vh, 200px);
+        min-height: 48px;
         background: rgba(8, 6, 20, 0.92);
         border: 1px solid rgba(180, 120, 255, 0.3);
         border-radius: 10px;
@@ -474,14 +569,23 @@
         padding: 0 12px 10px;
         overflow-y: auto;
         flex: 1;
-        pointer-events: none;
+        pointer-events: auto;
       }
       .panel-header {
         display: flex;
-        justify-content: flex-end;
-        padding: 4px 8px 0;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px 4px;
         flex-shrink: 0;
         pointer-events: auto;
+        border-bottom: 1px solid rgba(100, 160, 255, 0.1);
+      }
+      .panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #88bbdd;
+        flex: 1;
+        pointer-events: none;
       }
       .panel-toggle {
         background: rgba(255, 255, 255, 0.08);
@@ -505,25 +609,82 @@
         max-height: none !important;
         min-height: 0 !important;
       }
-      #lab-panel.panel-collapsed {
-        top: auto;
-        bottom: calc(38vh + 28px);
-        max-height: none;
-      }
+      #lab-panel.panel-collapsed,
       #theory-panel.panel-collapsed {
         max-height: none;
+        min-height: 0;
+        flex: 0 0 auto;
+      }
+      body.ui-clean #lab-panel,
+      body.ui-clean #theory-panel,
+      body.ui-clean #life-panel,
+      body.ui-clean #research-panel,
+      body.ui-clean #mode-explainer {
+        display: none !important;
+      }
+      body.ui-clean #hud .hud-tagline,
+      body.ui-clean #hud-readouts,
+      body.ui-clean #hud-toggle {
+        display: none;
+      }
+      body.ui-clean #hud {
+        max-height: none;
+        padding: 4px 10px 6px;
+        opacity: 0.9;
+      }
+      body.ui-clean #left-stack {
+        max-height: none;
+      }
+      @media (max-width: 900px) {
+        :root {
+          --left-col: 220px;
+          --right-col: 0px;
+        }
+        #hud {
+          font-size: 10px;
+          max-width: 200px;
+        }
+        #theory-panel, #lab-panel {
+          width: 100%;
+        }
+        #research-panel {
+          width: min(260px, calc(100vw - 24px));
+          right: 8px;
+        }
+        #ux-dock {
+          bottom: 8px;
+          padding: 4px 6px;
+          gap: 4px;
+        }
+        .ux-dock-btn {
+          width: 32px;
+          height: 32px;
+          font-size: 12px;
+        }
+        #mode-picker {
+          top: auto;
+          bottom: 58px;
+          flex-direction: column;
+          align-items: stretch;
+          padding: 6px 8px;
+        }
+        .mode-picker-label {
+          text-align: center;
+        }
       }
       @media (max-width: 1280px) {
         :root {
           --left-col: 260px;
           --right-col: 260px;
         }
+        #left-stack {
+          width: min(260px, calc(100vw - 24px));
+        }
         #lab-panel {
-          top: 110px;
-          max-height: calc(100vh - 110px - 32vh - 40px);
+          max-height: min(24vh, 180px);
         }
         #theory-panel {
-          max-height: 32vh;
+          max-height: min(30vh, 240px);
         }
       }
       #lab-panel h2 {
@@ -618,10 +779,11 @@
       }
       #research-panel {
         position: fixed;
-        top: 118px;
-        right: 16px;
-        width: 280px;
-        max-height: calc(100vh - 140px);
+        bottom: var(--dock-h);
+        right: 12px;
+        top: auto;
+        width: min(300px, calc(100vw - var(--gui-w) - 32px));
+        max-height: min(42vh, 340px);
         background: rgba(6, 10, 24, 0.93);
         border: 1px solid rgba(80, 180, 140, 0.3);
         border-radius: 10px;
@@ -638,7 +800,33 @@
         padding: 0 12px 10px;
         overflow-y: auto;
         flex: 1;
-        pointer-events: none;
+        pointer-events: auto;
+      }
+      #research-panel .research-workflow {
+        margin-bottom: 10px;
+        border: 1px solid rgba(80, 180, 140, 0.2);
+        border-radius: 6px;
+        padding: 6px 8px;
+        background: rgba(0, 20, 16, 0.35);
+      }
+      #research-panel .research-workflow summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: #88ddbb;
+        font-size: 11px;
+      }
+      #research-panel .workflow-intro,
+      #research-panel .workflow-tip {
+        font-size: 10px;
+        color: #88aa99;
+        margin: 6px 0;
+        line-height: 1.45;
+      }
+      #research-panel .workflow-steps {
+        margin: 4px 0 6px 16px;
+        font-size: 10px;
+        color: #b8e0d0;
+        line-height: 1.5;
       }
       #research-panel h2 {
         font-size: 14px;
@@ -720,6 +908,140 @@
         margin-top: 6px;
         line-height: 1.4;
       }
+      #research-panel .research-maturity {
+        margin: 8px 0;
+        padding: 8px;
+        background: rgba(20, 40, 50, 0.5);
+        border-radius: 6px;
+        font-size: 10px;
+      }
+      #research-panel .maturity-title {
+        color: #88ddbb;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      #research-panel .maturity-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin: 2px 0;
+        font-family: monospace;
+        font-size: 9px;
+      }
+      #research-panel .maturity-row span:first-child {
+        color: #668899;
+        width: 18px;
+      }
+      #research-panel .research-observatory {
+        display: flex;
+        gap: 8px;
+        font-size: 9px;
+        color: #77aa99;
+        margin-bottom: 6px;
+      }
+      #research-panel .research-ligo {
+        margin: 8px 0;
+      }
+      #research-panel .ligo-title {
+        font-size: 10px;
+        color: #ffbb88;
+        margin-bottom: 4px;
+      }
+      #research-panel #ligo-chart {
+        width: 100%;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 180, 80, 0.2);
+      }
+      #research-panel .ligo-meta {
+        font-size: 8px;
+        color: #778899;
+        margin-top: 2px;
+      }
+      #research-panel .research-theory-compare {
+        margin: 8px 0;
+        font-size: 10px;
+      }
+      #research-panel .tc-selects {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        margin: 6px 0;
+        pointer-events: auto;
+      }
+      #research-panel .tc-select {
+        flex: 1;
+        font-size: 9px;
+        background: #0a1420;
+        color: #aaddcc;
+        border: 1px solid #334455;
+        border-radius: 4px;
+        padding: 2px;
+      }
+      #research-panel .tc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      #research-panel .tc-col {
+        background: rgba(15, 25, 40, 0.6);
+        padding: 6px;
+        border-radius: 4px;
+      }
+      #research-panel .tc-status {
+        font-size: 8px;
+        color: #778899;
+        margin: 2px 0 4px;
+      }
+      #research-panel .tc-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 8px;
+        color: #99bbaa;
+        margin: 1px 0;
+      }
+      #research-panel .tc-short {
+        font-size: 8px;
+        color: #8899aa;
+        line-height: 1.3;
+      }
+      #research-panel .research-export-help {
+        margin: 8px 0;
+        font-size: 10px;
+        pointer-events: auto;
+      }
+      #research-panel .research-export-help summary {
+        color: #88ddbb;
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      #research-panel .export-help-intro {
+        font-size: 9px;
+        color: #778899;
+        margin: 4px 0 6px;
+        line-height: 1.4;
+      }
+      #research-panel .export-help-list {
+        margin: 0 0 4px 14px;
+        padding: 0;
+        font-size: 9px;
+        color: #99bbaa;
+        line-height: 1.45;
+      }
+      #research-panel .export-help-list strong {
+        color: #aaddcc;
+      }
+      .lil-gui {
+        max-height: calc(100vh - var(--top-ui) - 12px) !important;
+        overflow-y: auto !important;
+        top: var(--top-ui) !important;
+        z-index: 14 !important;
+      }
+      .lil-gui .controller.disabled .name {
+        white-space: normal !important;
+        line-height: 1.35;
+        opacity: 0.9;
+      }
       #hud .hud-seed span:last-child {
         color: #88ffcc;
         font-family: monospace;
@@ -746,14 +1068,10 @@
         color: #bb99ff;
       }
       #guide-toggle {
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        z-index: 50;
         background: rgba(8, 16, 40, 0.9);
         border: 1px solid rgba(100, 180, 255, 0.35);
         border-radius: 20px;
-        padding: 6px 14px;
+        padding: 5px 14px;
         font-size: 11px;
         color: #a8d4ff;
         cursor: pointer;
@@ -870,20 +1188,103 @@
         margin-bottom: 6px;
         line-height: 1.35;
       }
-      #mode-bar {
+      #mode-picker {
         position: fixed;
-        top: 36px;
+        top: 38px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(4, 12, 32, 0.85);
-        border: 1px solid rgba(100, 180, 255, 0.35);
-        border-radius: 8px;
-        padding: 4px 10px;
-        font-size: 10px;
-        color: #88aacc;
-        z-index: 11;
-        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(4, 12, 32, 0.88);
+        border: 1px solid rgba(100, 180, 255, 0.3);
+        border-radius: 10px;
+        padding: 4px 8px 4px 10px;
+        z-index: 12;
+        max-width: min(720px, calc(100vw - 24px));
+        pointer-events: auto;
+        backdrop-filter: blur(8px);
+      }
+      .mode-picker-label {
+        font-size: 9px;
+        color: #6688aa;
         white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .mode-picker-chips {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 2px 0;
+      }
+      .mode-picker-chips::-webkit-scrollbar {
+        display: none;
+      }
+      .mode-chip {
+        flex-shrink: 0;
+        background: rgba(20, 40, 70, 0.6);
+        border: 1px solid rgba(100, 160, 255, 0.2);
+        border-radius: 14px;
+        padding: 3px 9px;
+        font-size: 9px;
+        color: #99bbdd;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        white-space: nowrap;
+      }
+      .mode-chip:hover {
+        background: rgba(40, 80, 140, 0.5);
+        color: #fff;
+      }
+      .mode-chip.active {
+        background: rgba(60, 120, 200, 0.45);
+        border-color: rgba(140, 200, 255, 0.55);
+        color: #fff;
+        font-weight: 600;
+      }
+      #ux-dock {
+        position: fixed;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        background: rgba(4, 10, 28, 0.92);
+        border: 1px solid rgba(100, 180, 255, 0.35);
+        border-radius: 16px;
+        padding: 6px 10px;
+        z-index: 60;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
+      .ux-dock-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(120, 170, 255, 0.25);
+        background: rgba(20, 40, 70, 0.5);
+        color: #a8d4ff;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .ux-dock-btn:hover {
+        background: rgba(50, 100, 180, 0.55);
+        color: #fff;
+        transform: translateY(-1px);
+      }
+      .ux-dock-btn.active {
+        background: rgba(80, 160, 120, 0.35);
+        border-color: rgba(120, 220, 160, 0.45);
+        color: #aaffcc;
+      }
+      #mode-bar {
+        display: none;
       }
       #mode-bar strong {
         color: #a8d4ff;
@@ -981,7 +1382,10 @@
     </style>
   </head>
   <body>
-    <button id="guide-toggle" type="button" aria-expanded="false">¿Cómo funciona?</button>
+    <div id="top-toolbar">
+      <button id="lang-toggle" type="button" title="Cambiar idioma">ES | EN</button>
+      <button id="guide-toggle" type="button" aria-expanded="false">¿Cómo funciona?</button>
+    </div>
     <div id="guide-backdrop"></div>
     <aside id="guide-panel" aria-label="Guía de la simulación">
       <div class="guide-header">
@@ -993,7 +1397,11 @@
     <div id="help-bar">
       <kbd>?</kbd> guía · <kbd>ℹ️</kbd> explicación del modo activo · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausar · zoom al BH = ver teoría · Tour 60s en controles
     </div>
-    <div id="mode-bar"><strong>Modo:</strong> <span id="mode-bar-label">Agujero negro</span></div>
+    <div id="mode-picker">
+      <span class="mode-picker-label" id="mode-picker-label">Modo</span>
+      <div id="mode-picker-chips" class="mode-picker-chips"></div>
+    </div>
+    <nav id="ux-dock" aria-label="Acciones rápidas"></nav>
     <aside id="mode-explainer" class="collapsed" aria-label="Explicación del modo activo" aria-expanded="false">
       <div id="mode-explainer-header">
         <span id="mode-explainer-icon">ℹ️</span>
@@ -1003,23 +1411,25 @@
       </div>
       <div id="mode-explainer-body"></div>
     </aside>
-    <div id="reset-toast"></div>
+    <div id="app-toast"></div>
     <div id="app"></div>
+    <div id="left-stack">
     <div id="hud">
-      <h1>¿Qué hay dentro del agujero negro?</h1>
+      <div class="hud-top-row">
+        <div>
+          <h1>¿Qué hay dentro del agujero negro?</h1>
+          <div id="hud-mode-badge" class="hud-mode">Agujero negro</div>
+        </div>
+        <button id="hud-toggle" type="button" title="Expandir métricas">▼</button>
+      </div>
       <p class="hud-tagline">Motor híbrido Schwarzschild + Friedmann + N-cuerpos · Teorías del horizonte</p>
-      <div id="hud-mode-badge" class="hud-mode">Agujero negro</div>
       <div id="hud-readouts"></div>
     </div>
-    <div id="theory-panel"></div>
-    <div id="life-panel"></div>
     <div id="lab-panel"></div>
-    <div id="research-panel">
-      <div class="panel-header">
-        <button class="panel-toggle" type="button" aria-label="Contraer panel investigación">▼</button>
-      </div>
-      <div class="panel-body"></div>
+    <div id="theory-panel"></div>
     </div>
+    <div id="life-panel"></div>
+    <div id="research-panel"></div>
     <div id="experiment-result"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

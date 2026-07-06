@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { initI18n } from './i18n/i18n.js';
+import { createLangToggle } from './i18n/lang-toggle.js';
+import { applyStaticUi } from './i18n/static-ui.js';
 import { SimulationEngine } from './simulation/engine.js';
 import { HorizonSimulator } from './simulation/horizon-simulator.js';
 import { LifeEngine } from './simulation/life-engine.js';
@@ -19,13 +22,18 @@ import { createParticleSystem } from './rendering/particles.js';
 import { createScene } from './rendering/scene.js';
 import { createLivingStarfield, createCosmicGrid, createCMBBackground } from './rendering/living-starfield.js';
 import { createGalaxyField } from './rendering/galaxy-field.js';
+import { createDeepField } from './rendering/deep-field.js';
 import { createMasterGui } from './ui/master-controls.js';
 import { updateHud, updateTheoryPanel, updateModePanel } from './ui/horizon-panel.js';
 import { createCameraLife, updateLifePanel } from './ui/life-panel.js';
-import { updateLabPanel, updateExperimentModal, showResetToast } from './ui/lab-panel.js';
+import { updateLabPanel, updateExperimentModal } from './ui/lab-panel.js';
 import { createGuidePanel } from './ui/guide-panel.js';
 import { createModeExplainer } from './ui/mode-explainer.js';
 import { createCosmicTour } from './ui/cosmic-tour.js';
+import { createModePicker } from './ui/mode-picker.js';
+import { createUxDock, initHelpBarFade } from './ui/ux-dock.js';
+import { initCleanView } from './ui/ui-clean-view.js';
+import { showToast } from './ui/toast.js';
 import { createMultiverseWorld } from './rendering/multiverse-world.js';
 import { createHiggsScene } from './rendering/higgs-scene.js';
 import { createStringScene } from './rendering/string-scene.js';
@@ -40,10 +48,16 @@ import { createCosmosApi } from './research/cosmos-api.js';
 import { updateResearchPanel } from './ui/research-panel.js';
 import { createResearchGui } from './ui/research-panel.js';
 import { createClassroomMode } from './ui/classroom-mode.js';
+import { t } from './i18n/i18n.js';
+import { getRealismProfile } from './physics/realism-profiles.js';
 
+async function bootstrap() {
 const simulationSeed = new SimulationSeed();
 const urlStateEarly = parseUrlState();
 if (urlStateEarly.seed != null) simulationSeed.setSeed(Number(urlStateEarly.seed));
+
+await initI18n(urlStateEarly.lang);
+applyStaticUi();
 
 const container = document.getElementById('app');
 const engine = new SimulationEngine();
@@ -75,22 +89,40 @@ function applyTheoryVisual(id) {
   bh.diskMat.uniforms.exteriorTint.value.set(tint[0], tint[1], tint[2]);
   probe.setTrailColor(visual.probeTrailColor ?? 0x00ffcc);
   bh.photonSphere.material.color.setHex(visual.membraneColor ?? 0xff6600);
-  bh.photonSphere.material.opacity = 0.12 + (theoryIndex % 5) * 0.01;
+  const profile = getRealismProfile(engine.universe.realismMode);
+  bh.photonSphere.visible = profile.showPhotonSphere ?? false;
+  if (bh.photonSphere.visible) {
+    bh.photonSphere.material.wireframe = true;
+    bh.photonSphere.material.opacity = 0.12 + (theoryIndex % 5) * 0.01;
+  }
   modeExplainer?.updateTheory?.(id);
 }
 
 applyTheoryVisual(horizonSim.theoryId);
 scene.add(interior.group, probe.mesh, probe.trail);
 
+const observatory = {
+  ligoEnabled: true,
+  sdssEnabled: true,
+  planckCmb: true,
+};
+
 const starfield = createLivingStarfield(5000, 200, { cinematic: false });
 const galaxyField = createGalaxyField({ cinematic: false, rng: () => simulationSeed.random() });
-const cmbBackground = createCMBBackground(480);
+const deepField = createDeepField({
+  cinematic: false,
+  sdssEnabled: observatory.sdssEnabled,
+  rng: () => simulationSeed.random(),
+});
+const cmbBackground = createCMBBackground(480, { planckStyle: observatory.planckCmb });
 const grid = createCosmicGrid(200, 20);
 const particles = createParticleSystem(30);
 
 const exteriorGroup = new THREE.Group();
-exteriorGroup.add(cmbBackground.group, galaxyField.group, starfield.group, grid.grid, particles.group, bh.group);
-scene.add(exteriorGroup);
+exteriorGroup.add(cmbBackground.group, galaxyField.group, starfield.group, grid.grid, particles.group, bh.group, deepField.sdssGroup);
+scene.add(exteriorGroup, deepField.group);
+deepField.group.visible = false;
+deepField.sdssGroup.visible = false;
 
 const multiverseWorld = createMultiverseWorld(engine.universe.cosmology);
 const higgsScene = createHiggsScene();
@@ -138,9 +170,11 @@ const appCtx = {
   engine,
   simulationSeed,
   dataLogger,
+  observatory,
   probe,
   starfield,
   galaxyField,
+  deepField,
   cmbBackground,
   camera,
   controls,
@@ -183,20 +217,67 @@ classroomMode.addGuiControls(guiHandles.gui, guiHandles.controllers, guiHandles.
 classroomMode.applyLocksFromUrl();
 classroomMode.applyGuiRestrictions(guiHandles.controllers, guiHandles.folders);
 const guidePanel = createGuidePanel();
+appCtx.guidePanel = guidePanel;
 modeExplainer = createModeExplainer();
 appCtx.modeExplainer = modeExplainer;
 const cosmicTour = createCosmicTour(appCtx);
 appCtx.cosmicTour = cosmicTour;
+
+createLangToggle(() => {
+  guiHandles.refreshGuiI18n?.();
+  guidePanel?.refresh?.();
+  modeExplainer?.refresh?.();
+  modeManager.updateHudLabel();
+  appCtx.researchGuiRefresh?.();
+  appCtx.uxDock?.refresh?.();
+  appCtx.modePicker?.refresh?.();
+});
+
 cosmicTour.showWelcomeIfNeeded();
 
-initPanelCollapse('lab-panel', { defaultCollapsed: false });
-initPanelCollapse('theory-panel', { defaultCollapsed: false });
-initPanelCollapse('research-panel', { defaultCollapsed: true });
+initPanelCollapse('lab-panel', { defaultCollapsed: true, title: t('gui.lab') });
+initPanelCollapse('theory-panel', { defaultCollapsed: true, title: t('gui.horizon') });
+initPanelCollapse('research-panel', { defaultCollapsed: false, title: t('panels.research.title') });
+initPanelCollapse('life-panel', { defaultCollapsed: true, title: t('gui.life') });
+
+const cleanView = initCleanView();
+appCtx.cleanView = cleanView;
+
+const hudEl = document.getElementById('hud');
+hudEl?.classList.add('hud-expanded');
+const hudToggle = document.getElementById('hud-toggle');
+if (hudToggle) hudToggle.textContent = '▲';
+hudToggle?.addEventListener('click', () => {
+  hudEl?.classList.toggle('hud-expanded');
+  if (hudToggle) hudToggle.textContent = hudEl?.classList.contains('hud-expanded') ? '▲' : '▼';
+});
 modeManager.setMode('black_hole');
+
+appCtx.modePicker = createModePicker(appCtx);
+appCtx.uxDock = createUxDock(appCtx);
+initHelpBarFade(14000);
+
+if (!localStorage.getItem('cosmos-research-hint-seen')) {
+  setTimeout(() => {
+    showToast(t('panels.research.welcomeHint'));
+    try { localStorage.setItem('cosmos-research-hint-seen', '1'); } catch { /* ignore */ }
+  }, 2500);
+}
+setTimeout(() => showToast(t('ux.realisticHint')), 1200);
 
 // URL state (resto de parámetros tras init completo)
 const urlState = urlStateEarly;
 applyUrlState(appCtx, urlState);
+engine.universe.repairCosmology();
+if (urlState.H0 == null && urlState.OmegaM == null) {
+  theoryLab.applyCosmologyPreset('planck2018');
+}
+engine.universe.realismMode = engine.universe.realismMode || 'realistic';
+engine.universe.showExpansion = true;
+engine.universe.showLensing = true;
+engine.universe.showGeodesics = engine.universe.showGeodesics !== false;
+starfield.setRealism?.(engine.universe.realismMode);
+galaxyField.setRealism?.(engine.universe.realismMode);
 syncUrlState(collectUrlState(appCtx));
 
 window.CosmosSim = createCosmosApi(appCtx);
@@ -238,17 +319,36 @@ function animate(now) {
   const mode = modeManager.currentMode;
   const isAltScene = mode === 'multiverse' || mode === 'higgs' || mode === 'string_theory';
   const isBinary = mode === 'binary_merger';
+  const isDeepField = mode === 'deep_field';
+  const isCosmology = mode === 'cosmology';
   const isString = mode === 'string_theory';
 
   const scaleFactor = engine.getScaleFactor();
-  const realism = engine.universe.realismMode ?? 'standard';
+  const realism = engine.universe.realismMode ?? 'realistic';
+  const profile = getRealismProfile(realism);
   const cosmo = engine.universe.cosmology;
 
-  if (!isBinary) {
+  scene.fog.density = isBinary || isDeepField ? profile.fogDensity : profile.fogDensity * 0.6;
+  renderer.toneMappingExposure = profile.toneExposure;
+  if (bh.diskMat.uniforms.diskIntensity) {
+    bh.diskMat.uniforms.diskIntensity.value = profile.diskIntensity;
+  }
+  binarySim.realismMode = realism;
+  gwWaves.setRealism?.(realism);
+  starfield.setRealism?.(realism);
+  galaxyField.setRealism?.(realism);
+
+  if (!isBinary && !isDeepField) {
     starfield.update(scaleFactor, rawDt, life.vitality, null, realism);
     galaxyField.update(scaleFactor, rawDt, cosmo, realism);
     cmbBackground.update(cosmo.redshift);
     grid.update(scaleFactor, life.pulse);
+    if (isCosmology && observatory.sdssEnabled) {
+      deepField.update(scaleFactor, rawDt, cosmo, camera, realism);
+      deepField.sdssGroup.visible = true;
+    } else if (!isDeepField) {
+      deepField.sdssGroup.visible = false;
+    }
   }
 
   if (
@@ -269,10 +369,23 @@ function animate(now) {
   interior.animate(animTime);
   horizonTransition.update(rawDt, animTime);
 
-  if (isAltScene || isBinary) {
-    if (!isBinary) exteriorGroup.visible = false;
+  if (isAltScene || isBinary || isDeepField) {
+    if (!isBinary && !isDeepField) exteriorGroup.visible = false;
     horizonMembrane.visible = false;
     interior.group.visible = false;
+    if (isDeepField) {
+      exteriorGroup.visible = true;
+      starfield.group.visible = false;
+      galaxyField.group.visible = false;
+      cmbBackground.group.visible = false;
+      grid.grid.visible = false;
+      particles.group.visible = false;
+      bh.group.visible = true;
+      bh.group.position.set(12, -4, -18);
+      deepField.sdssGroup.visible = observatory.sdssEnabled;
+      deepField.update(scaleFactor, rawDt, cosmo, camera, realism);
+      deepField.setRealism(realism);
+    }
     if (mode === 'multiverse') {
       multiverseWorld.animate(animTime, rawDt);
       multiverseWorld.updateCosmology(engine.universe.cosmology);
@@ -311,6 +424,9 @@ function animate(now) {
     }
   } else {
     bh.group.visible = true;
+    bh.group.position.set(0, 0, 0);
+    deepField.group.visible = false;
+    deepField.showScaleBar(false);
     binaryCamLerp = 0;
     // Ocultar exterior solo por inmersión de cámara, no cuando solo la sonda cruza
     modeManager.applySceneVisibility(cameraImmersion, horizonSim.interiorOpacity, cameraImmersion);
@@ -318,8 +434,12 @@ function animate(now) {
     starfield.points.material.opacity = 0.3 + extDim * 0.6;
     galaxyField.group.visible = cameraImmersion < 0.92;
     cmbBackground.group.visible = cameraImmersion < 0.95;
-    grid.grid.visible = cameraImmersion < 0.85;
-    horizonMembrane.material.opacity = 0.3 + (1 - Math.min(1, interiorOpacity * 1.5)) * 0.5;
+    grid.grid.visible = cameraImmersion < 0.85 && modeManager.currentMode !== 'black_hole';
+    const camDist = camera.position.distanceTo(bhWorldPos);
+    const rs = engine.universe.rsVis;
+    const nearHorizon = Math.min(1, Math.max(0, 1 - (camDist - rs * 6) / (rs * 35)));
+    horizonMembrane.material.opacity = nearHorizon * 0.7 + interiorOpacity * 0.35;
+    horizonMembrane.visible = nearHorizon > 0.03 || interiorOpacity > 0.08;
 
     const bhScale = modeManager.currentMode === 'cosmology' ? 0.35 : 1;
     bh.group.scale.setScalar(bhScale);
@@ -327,6 +447,20 @@ function animate(now) {
 
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
+  if (bh.lensedHalos) {
+    for (const halo of bh.lensedHalos.children) {
+      const mat = halo.userData.haloMat;
+      if (mat) {
+        mat.uniforms.time.value = animTime;
+        mat.uniforms.spin.value = engine.universe.spin;
+        mat.uniforms.exteriorTint.value.copy(bh.diskMat.uniforms.exteriorTint.value);
+      }
+    }
+  }
+  if (bh.photonRingMat) {
+    bh.photonRingMat.opacity = 0.82 + Math.sin(animTime * 1.8) * 0.06;
+    bh.photonRing.visible = !isAltScene && !isBinary && cameraImmersion < 0.75;
+  }
   horizonMat.uniforms.time.value = animTime;
   const visual = getHorizonVisual(horizonSim.theoryId);
   const theoryRipple = (visual.membraneRipple ?? 1) * 0.15;
@@ -334,9 +468,10 @@ function animate(now) {
     horizonSim.horizonRipple + theoryRipple + life.pulse * 0.08;
 
   probe.update(horizonSim.getProbePosition(), horizonSim.probeState !== 'idle');
-  particles.update(engine.universe.showGeodesics ? engine.getParticleStates() : []);
+  const particleStates = engine.universe.showGeodesics ? engine.getParticleStates() : [];
+  particles.update(particleStates, profile.geodesicOpacity ?? 0.45);
 
-  updateHud(engine.universe.getReadouts(), modeManager, isBinary ? binarySim.getReadouts() : null, simulationSeed.seed);
+  updateHud(engine.universe.getReadouts(), modeManager, isBinary ? binarySim.getReadouts() : null, simulationSeed.seed, isDeepField ? deepField : null);
   updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null, isString ? stringScene : null);
   updateModePanel(modeManager);
   updateLifePanel(lifeEngine, isBinary ? binarySim : null, isBinary);
@@ -344,7 +479,7 @@ function animate(now) {
   updateResearchPanel(appCtx);
 
   controls.update();
-  lensing.update(camera, bhWorldPos, engine.universe.showLensing && cameraImmersion < 0.8 && !isAltScene && !isBinary, engine.universe.rsVis, engine.universe.spin);
+  lensing.update(camera, bhWorldPos, engine.universe.showLensing && cameraImmersion < 0.8 && !isAltScene && !isBinary && !isDeepField, engine.universe.rsVis, engine.universe.spin, profile.lensStrengthMul);
   lensing.render();
 }
 
@@ -353,15 +488,16 @@ animate(performance.now());
 window.addEventListener('resize', () => lensing.setSize(container.clientWidth, container.clientHeight));
 
 window.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
   if (e.key === 'r' || e.key === 'R') {
     resetManager.fullReset();
-    showResetToast('⏮ Universo reiniciado (tecla R)');
+    showToast(t('toast.resetKey'));
   }
   if (e.key === ' ') {
     e.preventDefault();
     engine.universe.paused = !engine.universe.paused;
     guiHandles.syncFromUniverse();
+    appCtx.uxDock?.refresh?.();
   }
   if (e.key === '?') {
     guidePanel?.toggle();
@@ -369,4 +505,19 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'i' || e.key === 'I') {
     modeExplainer?.toggle?.();
   }
+  if (e.key === 'g' || e.key === 'G') {
+    appCtx.toggleGui?.();
+    appCtx.uxDock?.refresh?.();
+  }
+  if (e.key === 'v' || e.key === 'V') {
+    cleanView.toggle();
+    appCtx.uxDock?.refresh?.();
+  }
+  if (e.key === 'Escape') {
+    guidePanel?.close?.();
+    modeExplainer?.hide?.();
+  }
 });
+}
+
+bootstrap().catch((err) => console.error('CosmosSim bootstrap failed:', err));

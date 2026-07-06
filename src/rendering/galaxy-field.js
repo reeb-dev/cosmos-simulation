@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getRealismProfile } from '../physics/realism-profiles.js';
 
 const H0_VIS = 0.018; // escala visual v = H₀·d para flujo de Hubble
 const GALAXY_TYPES = ['spiral', 'elliptical', 'irregular'];
@@ -234,7 +235,7 @@ export function createGalaxyField({
   );
   group.add(distantPoints);
 
-  let realismMode = cinematic ? 'cinematic' : 'standard';
+  let realismMode = cinematic ? 'cinematic' : 'realistic';
   let time = 0;
 
   function makeGalaxy(x, y, z, type, seed, maxR, texMap, random = Math.random) {
@@ -310,13 +311,14 @@ export function createGalaxyField({
       }
     }
 
-    milkyWayBand.material.opacity = mode === 'cinematic' ? 0.32 : 0.22;
-    distantPoints.material.opacity = mode === 'cinematic' ? 0.65 : 0.45;
-    distantPoints.material.size = mode === 'cinematic' ? 1.1 : 0.8;
+    const profile = getRealismProfile(mode || realismMode);
+    milkyWayBand.material.opacity = profile.id === 'cinematic' ? 0.32 : profile.id === 'realistic' ? 0.18 : 0.22;
+    distantPoints.material.opacity = profile.id === 'cinematic' ? 0.65 : profile.id === 'realistic' ? 0.4 : 0.45;
+    distantPoints.material.size = profile.starSize * 0.75;
   }
 
   function setRealism(mode) {
-    realismMode = mode === 'cinematic' ? 'cinematic' : 'standard';
+    realismMode = mode || 'realistic';
     galaxyGroup.visible = true;
   }
 

@@ -5,6 +5,15 @@ import { M_SUN } from '../physics/constants.js';
 import { getModeMetadata, PHYSICS_METADATA, renderPhysicsFootnote } from '../research/physics-metadata.js';
 import { DataLogger } from '../research/data-logger.js';
 import { collectUrlState, syncUrlState } from '../research/simulation-seed.js';
+import { computeMaturityScore, maturityBarHtml } from '../research/maturity-score.js';
+import { compareStrainToLigo, drawLigoComparisonChart } from '../research/ligo-comparison.js';
+import { exportPublicationReport } from '../research/publication-report.js';
+import { HORIZON_THEORIES, THEORY_IDS } from '../simulation/horizon-theories.js';
+import { addGuiHint, refreshGuiHint } from './gui-hints.js';
+import { showToast } from './toast.js';
+import { t } from '../i18n/i18n.js';
+
+const theoryCompareState = { a: 'singularity', b: 'firewall' };
 
 /**
  * Comparaciones modelo teórico vs simulación.
@@ -41,6 +50,42 @@ export function computeValidations(ctx) {
     unit: 'u.vis',
     errorPercent: rsErr,
     meta: PHYSICS_METADATA.schwarzschild_rs,
+  });
+
+  const zTheory = cosmo.a > 0 ? 1 / cosmo.a - 1 : 0;
+  const zSim = cosmo.redshift;
+  const zErr = zSim !== 0 ? Math.abs((zTheory - zSim) / zSim) * 100 : 0;
+  validations.push({
+    id: 'redshift_z',
+    name: 'Redshift z(a)',
+    theoretical: zTheory,
+    simulated: zSim,
+    unit: 'adim.',
+    errorPercent: zErr,
+    meta: PHYSICS_METADATA.friedmann_h,
+  });
+
+  const dcSim = cosmo.comovingDistance();
+  const dcTheory = cosmo.comovingDistanceAtZ(cosmo.redshift);
+  const dcErr = dcSim !== 0 ? Math.abs((dcTheory - dcSim) / dcSim) * 100 : 0;
+  validations.push({
+    id: 'comoving_distance',
+    name: 'Distancia comóvil d_c',
+    theoretical: dcTheory,
+    simulated: dcSim,
+    unit: 'm',
+    errorPercent: dcErr,
+    meta: PHYSICS_METADATA.comoving_distance,
+  });
+
+  validations.push({
+    id: 'seed_repro',
+    name: 'Semilla reproducible',
+    theoretical: ctx.simulationSeed?.seed ?? 42,
+    simulated: ctx.simulationSeed?.seed ?? 42,
+    unit: 'id',
+    errorPercent: 0,
+    meta: { citation: 'CosmosSim seed' },
   });
 
   // Dilatación temporal (si hay sonda/cámara cerca)
@@ -87,8 +132,8 @@ export function computeValidations(ctx) {
       const muKg = (m1Kg * m2Kg) / M;
       const { C, G } = awaitableConstants();
       const v = Math.sqrt((G * M) / sepM);
-      const hTheory = ((4 * G * muKg) / (C * C * sepM)) * (v / C) ** 2 * 1e21;
-      const hSim = b.lastStrain;
+      const hTheory = ((4 * G * muKg) / (C * C * sepM)) * (v / C) ** 2;
+      const hSim = b.lastPhysicalStrain ?? 0;
       const hErr = hSim > 0 ? Math.abs((hTheory - hSim) / hSim) * 100 : 0;
       validations.push({
         id: 'gw_strain',
@@ -107,6 +152,103 @@ export function computeValidations(ctx) {
 
 function awaitableConstants() {
   return { C: 2.998e8, G: 6.674e-11 };
+}
+
+/** Comparador ligero de dos teorías del horizonte */
+export function getTheoryComparison(idA, idB, ctx) {
+  const simCtx = { universe: ctx.universe, horizonSim: ctx.horizonSim };
+  const pack = (id) => {
+    const th = HORIZON_THEORIES[id];
+    if (!th) return { id, name: id, status: '—', rows: [] };
+    const ro = th.computeReadouts?.(simCtx);
+    return {
+      id,
+      name: th.name,
+      status: th.status ?? '—',
+      short: th.short ?? '',
+      rows: ro?.rows ?? [],
+    };
+  };
+  return { a: pack(idA), b: pack(idB) };
+}
+
+function theoryCompareHtml(ctx) {
+  const cmp = getTheoryComparison(theoryCompareState.a, theoryCompareState.b, ctx);
+  const opts = THEORY_IDS.map((id) => {
+    const name = HORIZON_THEORIES[id]?.name ?? id;
+    return `<option value="${id}">${name}</option>`;
+  }).join('');
+
+  const rowHtml = (side) => {
+    const rows = side.rows.slice(0, 4).map((r) =>
+      `<div class="tc-row"><span>${r.label}</span><span>${r.value} ${r.unit ?? ''}</span></div>`
+    ).join('');
+    return `<div class="tc-col">
+      <strong>${side.name}</strong>
+      <div class="tc-status">${side.status}</div>
+      ${rows || `<p class="tc-short">${side.short}</p>`}
+    </div>`;
+  };
+
+  return `
+    <details class="research-theory-compare" open>
+      <summary>${t('panels.research.theoryCompare')}</summary>
+      <div class="tc-selects">
+        <select id="tc-theory-a" class="tc-select">${opts}</select>
+        <span>vs</span>
+        <select id="tc-theory-b" class="tc-select">${opts}</select>
+      </div>
+      <div class="tc-grid">${rowHtml(cmp.a)}${rowHtml(cmp.b)}</div>
+    </details>`;
+}
+
+function researchWorkflowHtml() {
+  const steps = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'].map(
+    (key) => `<li>${t(`panels.research.${key}`)}</li>`
+  ).join('');
+  return `
+    <details class="research-workflow" open>
+      <summary>${t('panels.research.workflowTitle')}</summary>
+      <p class="workflow-intro">${t('panels.research.workflowIntro')}</p>
+      <ol class="workflow-steps">${steps}</ol>
+      <p class="workflow-tip">${t('panels.research.workflowTip')}</p>
+    </details>`;
+}
+
+function exportHelpHtml() {
+  const items = [
+    ['csv', 'gui.exportData'],
+    ['jsonSeries', 'gui.exportJson'],
+    ['validation', 'gui.exportValidation'],
+    ['publication', 'gui.exportPublication'],
+    ['sweepH0', 'gui.sweepH0'],
+    ['sweepMass', 'gui.sweepMass'],
+    ['copyUrl', 'gui.copyUrl'],
+  ];
+  const rows = items.map(([key, labelKey]) =>
+    `<li><strong>${t(labelKey)}</strong> — ${t(`exportHelp.${key}`)}</li>`
+  ).join('');
+  return `
+    <details class="research-export-help" open>
+      <summary>${t('panels.research.exportHelpTitle')}</summary>
+      <p class="export-help-intro">${t('exportHelp.intro')}</p>
+      <ul class="export-help-list">${rows}</ul>
+    </details>`;
+}
+
+function bindTheoryCompare(ctx) {
+  const selA = document.getElementById('tc-theory-a');
+  const selB = document.getElementById('tc-theory-b');
+  if (!selA || !selB) return;
+  selA.value = theoryCompareState.a;
+  selB.value = theoryCompareState.b;
+  const refresh = () => {
+    theoryCompareState.a = selA.value;
+    theoryCompareState.b = selB.value;
+    updateResearchPanel(ctx);
+  };
+  selA.onchange = refresh;
+  selB.onchange = refresh;
 }
 
 /**
@@ -187,6 +329,16 @@ export function updateResearchPanel(ctx) {
   const sampleCount = ctx.dataLogger?.samples?.length ?? 0;
   const seed = ctx.simulationSeed?.seed ?? 42;
 
+  const ligoCmp = mode === 'binary_merger' && ctx.binarySim?.strainHistory?.length > 5
+    ? compareStrainToLigo(ctx.binarySim.strainHistory)
+    : null;
+
+  const maturity = computeMaturityScore(ctx, validations, {
+    hasExport: true,
+    hasPublicationReport: true,
+    ligoComparison: ligoCmp,
+  });
+
   let valHtml = '<div class="research-validations">';
   for (const v of validations) {
     const foot = v.meta ? renderPhysicsFootnote(v.meta.id ?? v.id) : '';
@@ -194,12 +346,34 @@ export function updateResearchPanel(ctx) {
       <div class="research-val-row ${errorClass(v.errorPercent)}">
         <span class="val-icon">${errorIcon(v.errorPercent)}</span>
         <span class="val-name">${v.name}${foot}</span>
-        <span class="val-theory" title="Teórico">${formatNum(v.theoretical)}</span>
-        <span class="val-sim" title="Simulado">${formatNum(v.simulated)}</span>
+        <span class="val-theory" title="${t('panels.research.theoretical')}">${formatNum(v.theoretical)}</span>
+        <span class="val-sim" title="${t('panels.research.simulated')}">${formatNum(v.simulated)}</span>
         <span class="val-err">Δ${v.errorPercent.toFixed(2)}%</span>
       </div>`;
   }
   valHtml += '</div>';
+
+  const maturityHtml = `
+    <div class="research-maturity">
+      <div class="maturity-title">${t('panels.research.maturity')}</div>
+      <div class="maturity-row"><span>N2</span> ${maturityBarHtml(maturity.level2.score)}</div>
+      <div class="maturity-row"><span>N3</span> ${maturityBarHtml(maturity.level3.score)}</div>
+      <div class="maturity-row"><span>N4</span> ${maturityBarHtml(maturity.level4.score)}</div>
+    </div>`;
+
+  const ligoHtml = ligoCmp ? `
+    <div class="research-ligo">
+      <div class="ligo-title">${t('panels.research.ligoTitle')} — ${ligoCmp.score}%</div>
+      <canvas id="ligo-chart" width="248" height="72"></canvas>
+      <div class="ligo-meta">${t('panels.research.ligoLegend')}</div>
+    </div>` : '';
+
+  const observatoryHtml = ctx.observatory ? `
+    <div class="research-observatory">
+      <span>${ctx.observatory.ligoEnabled ? '✓ LIGO' : '○ LIGO'}</span>
+      <span>${ctx.observatory.sdssEnabled ? '✓ SDSS' : '○ SDSS'}</span>
+      <span>${ctx.observatory.planckCmb ? '✓ Planck' : '○ Planck'}</span>
+    </div>` : '';
 
   const validatedList = modeMeta.validated.map((x) => `<li>${x}</li>`).join('');
   const visualList = modeMeta.visualOnly.map((x) => `<li>${x}</li>`).join('');
@@ -208,26 +382,37 @@ export function updateResearchPanel(ctx) {
     : '';
 
   body.innerHTML = `
-    <h2>Investigación</h2>
     <div class="research-header">
-      <span>Semilla: <strong>${seed}</strong></span>
-      <span>Muestras: <strong>${sampleCount}</strong></span>
+      <span>${t('panels.research.seed')} <strong>${seed}</strong></span>
+      <span>${t('panels.research.samples')} <strong>${sampleCount}</strong></span>
     </div>
-    <div class="research-compare-title">Modelo teórico vs Simulación</div>
+    ${researchWorkflowHtml()}
+    ${maturityHtml}
+    ${observatoryHtml}
+    ${ligoHtml}
+    <div class="research-compare-title">${t('panels.research.compareTitle')}</div>
     <div class="research-compare-legend">
-      <span>Teórico</span><span>Simulado</span><span>Error</span>
+      <span>${t('panels.research.theoretical')}</span><span>${t('panels.research.simulated')}</span><span>${t('panels.research.error')}</span>
     </div>
     ${valHtml}
+    ${exportHelpHtml()}
+    ${theoryCompareHtml(ctx)}
     ${disclaimer}
     <details class="research-limits">
-      <summary>Limitaciones honestas (no grado investigación)</summary>
+      <summary>${t('panels.research.limits')}</summary>
       <div class="limits-grid">
-        <div><strong>✓ Validado en este modo</strong><ul>${validatedList}</ul></div>
-        <div><strong>◎ Solo visual / pedagógico</strong><ul>${visualList}</ul></div>
+        <div><strong>${t('panels.research.validated')}</strong><ul>${validatedList}</ul></div>
+        <div><strong>${t('panels.research.visualOnly')}</strong><ul>${visualList}</ul></div>
       </div>
-      <p class="limits-note">El lensing es post-proceso en pantalla (no ray-tracing por geodésicas). Los interiores del BH son escenas teóricas ilustrativas. El merger binario usa Peters + modelos fenomenológicos, no simulación NR (SXS/ETK).</p>
+      <p class="limits-note">${t('panels.research.limitsNote')}</p>
     </details>
   `;
+
+  if (ligoCmp) {
+    const canvas = document.getElementById('ligo-chart');
+    drawLigoComparisonChart(canvas, ctx.binarySim.strainHistory);
+  }
+  bindTheoryCompare(ctx);
 }
 
 /**
@@ -274,51 +459,72 @@ export function downloadSweepCSV(rows, filename) {
  * Crea controles GUI de investigación.
  */
 export function createResearchGui(ctx, parentGui) {
-  const folder = parentGui.addFolder('Investigación');
+  const folder = parentGui.addFolder(t('gui.research'));
+  const hintIntro = addGuiHint(folder, 'exportHelp.intro');
 
-  folder.add({
+  const exportDataCtrl = folder.add({
     exportData: () => ctx.dataLogger?.exportCSV(ctx),
-  }, 'exportData').name('📥 Exportar datos (CSV/JSON)');
+  }, 'exportData').name(t('gui.exportData'));
 
-  folder.add({
+  const exportJsonCtrl = folder.add({
     exportJSON: () => ctx.dataLogger?.exportJSON(ctx),
-  }, 'exportJSON').name('📥 Exportar serie (JSON)');
+  }, 'exportJSON').name(t('gui.exportJson'));
 
-  folder.add({
+  const exportValCtrl = folder.add({
     exportValidation: () => exportValidationReport(ctx),
-  }, 'exportValidation').name('📋 Informe validación');
+  }, 'exportValidation').name(t('gui.exportValidation'));
+
+  const exportPubCtrl = folder.add({
+    exportPublication: () => exportPublicationReport(ctx),
+  }, 'exportPublication').name(t('gui.exportPublication'));
 
   const sweepState = { h0Points: 15, massPoints: 15 };
 
-  folder.add({
+  const sweepH0Ctrl = folder.add({
     sweepH0: () => {
       const rows = sweepH0(ctx, { points: sweepState.h0Points });
       const ts = new Date().toISOString().slice(0, 10);
       downloadSweepCSV(rows, `sweep-H0-${ts}.csv`);
       console.table(rows);
     },
-  }, 'sweepH0').name('Barrido H₀ (60–80)');
+  }, 'sweepH0').name(t('gui.sweepH0'));
 
-  folder.add({
+  const sweepMassCtrl = folder.add({
     sweepMass: () => {
       const rows = sweepBlackHoleMass(ctx, { points: sweepState.massPoints });
       const ts = new Date().toISOString().slice(0, 10);
       downloadSweepCSV(rows, `sweep-MBH-${ts}.csv`);
       console.table(rows);
     },
-  }, 'sweepMass').name('Barrido M_BH (rₛ,T,τ)');
+  }, 'sweepMass').name(t('gui.sweepMass'));
 
-  folder.add(sweepState, 'h0Points', 10, 20, 1).name('Puntos H₀');
-  folder.add(sweepState, 'massPoints', 10, 20, 1).name('Puntos masa');
+  const h0Ctrl = folder.add(sweepState, 'h0Points', 10, 20, 1).name(t('gui.h0Points'));
+  const massCtrl = folder.add(sweepState, 'massPoints', 10, 20, 1).name(t('gui.massPoints'));
 
-  folder.add({
+  const copyUrlCtrl = folder.add({
     copyUrl: () => {
       const state = collectUrlState(ctx);
       syncUrlState(state);
       navigator.clipboard?.writeText(window.location.href);
+      showToast(t('exportHelp.copyUrlDone'));
     },
-  }, 'copyUrl').name('🔗 Copiar URL reproducible');
+  }, 'copyUrl').name(t('gui.copyUrl'));
 
   folder.open();
+
+  ctx.researchGuiRefresh = () => {
+    if (folder.$title) folder.$title.textContent = t('gui.research');
+    refreshGuiHint(hintIntro, 'exportHelp.intro');
+    exportDataCtrl.name(t('gui.exportData'));
+    exportJsonCtrl.name(t('gui.exportJson'));
+    exportValCtrl.name(t('gui.exportValidation'));
+    exportPubCtrl.name(t('gui.exportPublication'));
+    sweepH0Ctrl.name(t('gui.sweepH0'));
+    sweepMassCtrl.name(t('gui.sweepMass'));
+    h0Ctrl.name(t('gui.h0Points'));
+    massCtrl.name(t('gui.massPoints'));
+    copyUrlCtrl.name(t('gui.copyUrl'));
+  };
+
   return folder;
 }

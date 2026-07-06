@@ -1,4 +1,5 @@
 import { REGIME, Universe } from './universe.js';
+import { getRealismProfile } from '../physics/realism-profiles.js';
 
 export class SimulationEngine {
   constructor(universe = new Universe()) {
@@ -12,21 +13,22 @@ export class SimulationEngine {
 
     const u = this.universe;
     const cosmoDt = rawDt * u.timeScale;
+    const profile = getRealismProfile(u.realismMode);
 
     if (u.showExpansion) {
       const hubbleTime = 1 / u.cosmology.H0SI;
       const lifeBoost = u.lifeBoost ?? 1;
-      u.cosmology.step((cosmoDt / hubbleTime) * 0.05 * lifeBoost);
+      u.cosmology.step((cosmoDt / hubbleTime) * profile.expansionRate * lifeBoost);
     }
 
     if (u.showGeodesics) {
-      const tau = rawDt * 1.5;
+      const tau = rawDt * profile.geodesicTau;
       for (const geo of u.geodesics) {
         geo.step(tau);
       }
     }
 
-    u.gravity.step(rawDt * 0.8, u.blackHoleMassSolar / 10);
+    u.gravity.step(rawDt * profile.gravityStep, u.blackHoleMassSolar / 10);
 
     this.clock += cosmoDt;
   }

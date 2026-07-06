@@ -1,6 +1,17 @@
 import { FORMULA_CATEGORIES, formatFormulaValue } from '../physics/formula-registry.js';
 import { getEraForZ, COSMIC_TIMELINE_MARKERS } from '../lab/theory-lab.js';
 import { renderPhysicsFootnote } from '../research/physics-metadata.js';
+import { t } from '../i18n/i18n.js';
+
+function fmtNum(n, digits = 2) {
+  if (!Number.isFinite(n)) return '—';
+  return n.toFixed(digits);
+}
+
+function fmtSim(v) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+  return v.toPrecision(4);
+}
 
 /** Mapeo nombre de fórmula → id de metadatos */
 const FORMULA_META_MAP = {
@@ -21,7 +32,11 @@ export function updateLabPanel(lab) {
   const cosmo = lab.universe.cosmology;
   const z = cosmo.redshift;
   const era = getEraForZ(z);
-  const ageGyr = cosmo.universeAgeGyr?.() ?? 13.8;
+  const rawAge = cosmo.universeAgeGyr?.();
+  const ageGyr = Number.isFinite(rawAge) ? rawAge : 13.8;
+  const aVal = Number.isFinite(cosmo.a) ? cosmo.a : 1;
+  const ageStr = Number.isFinite(ageGyr) ? fmtNum(ageGyr) : '—';
+  const aStr = Number.isFinite(cosmo.a) ? cosmo.a.toFixed(5) : '—';
 
   const byCategory = {};
   for (const r of results) {
@@ -31,9 +46,8 @@ export function updateLabPanel(lab) {
   }
 
   let html = `
-    <h2>Laboratorio</h2>
     <div class="lab-era" style="color:${era.color}">${era.name}</div>
-    <div class="lab-age">Edad del universo: <strong>${ageGyr.toFixed(2)} Gyr</strong> · a=${cosmo.a.toFixed(5)}</div>
+    <div class="lab-age">${t('panels.lab.age')} <strong>${ageStr} Gyr</strong> · a=${aStr}</div>
     <div class="lab-timeline">${renderTimeline(z)}</div>
     <div class="lab-timeline-legend">${renderTimelineLegend(z)}</div>
   `;
@@ -41,9 +55,9 @@ export function updateLabPanel(lab) {
   for (const [cat, items] of Object.entries(byCategory)) {
     html += `<div class="lab-category"><strong>${cat}</strong>`;
     for (const item of items) {
-      const val = item.error ? `error: ${item.error}` : formatFormulaValue(item);
+      const val = item.error ? `${t('panels.lab.error')} ${item.error}` : formatFormulaValue(item);
       const sim = item.result?.simValue !== undefined
-        ? ` <span class="lab-sim">↔ ${typeof item.result.simValue === 'number' ? item.result.simValue.toPrecision(4) : item.result.simValue}</span>`
+        ? ` <span class="lab-sim">↔ ${fmtSim(item.result.simValue)}</span>`
         : '';
       const err = item.error ? ` <span class="lab-err">!</span>` : '';
       const metaId = FORMULA_META_MAP[item.name];
@@ -55,10 +69,11 @@ export function updateLabPanel(lab) {
 
   const comparisons = lab.getComparisons();
   if (comparisons.length) {
-    html += '<div class="lab-category"><strong>Validación</strong>';
+    html += `<div class="lab-category"><strong>${t('panels.lab.validation')}</strong>`;
     for (const c of comparisons) {
       const icon = c.diffPercent < 2 ? '✓' : c.diffPercent < 10 ? '~' : '✗';
-      html += `<div class="lab-compare">${icon} ${c.name}: Δ${c.diffPercent.toFixed(1)}%</div>`;
+      const diff = Number.isFinite(c.diffPercent) ? `${c.diffPercent.toFixed(1)}%` : '—';
+      html += `<div class="lab-compare">${icon} ${c.name}: Δ${diff}</div>`;
     }
     html += '</div>';
   }
@@ -104,17 +119,14 @@ export function updateExperimentModal(data) {
     return `<div><strong>${k}:</strong> ${val}</div>`;
   });
 
-  modal.innerHTML = `<div class="exp-title">Resultado del experimento</div>${lines.join('')}`;
+  modal.innerHTML = `<div class="exp-title">${t('experiment.title')}</div>${lines.join('')}`;
   modal.style.display = 'block';
   clearTimeout(modal._timer);
   modal._timer = setTimeout(() => { modal.style.display = 'none'; }, 10000);
 }
 
+import { showToast } from './toast.js';
+
 export function showResetToast(msg) {
-  const el = document.getElementById('reset-toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('visible');
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.classList.remove('visible'), 2500);
+  showToast(msg);
 }

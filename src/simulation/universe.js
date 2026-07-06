@@ -23,7 +23,7 @@ export class Universe {
     this.showGeodesics = true;
     this.showLensing = true;
     this.lifeBoost = 1.8;
-    this.realismMode = 'standard';
+    this.realismMode = 'realistic';
     this.simulationSeed = simulationSeed;
 
     this._initParticles();
@@ -84,6 +84,12 @@ export class Universe {
 
   setCosmology(params) {
     this.cosmology.setCosmology(params);
+    this.cosmology.repair();
+  }
+
+  repairCosmology() {
+    this.cosmology.repair();
+    return this;
   }
 
   classifyRegime(distanceVis) {
@@ -98,15 +104,21 @@ export class Universe {
   }
 
   getReadouts() {
+    this.cosmology.repair();
+    const a = this.cosmology.a;
+    const z = this.cosmology.redshift;
+    const H = this.cosmology.HNow;
+    const dc = this.cosmology.comovingDistance();
+    const ageGyr = this.cosmology.universeAgeGyr();
     return {
-      a: this.cosmology.a,
-      z: this.cosmology.redshift,
-      H: this.cosmology.HNow,
+      a: Number.isFinite(a) ? a : 1,
+      z: Number.isFinite(z) ? z : 0,
+      H: Number.isFinite(H) ? H : this.cosmology.H0,
       rs: this.rsVis,
       rsMeters: schwarzschildRadiusMeters(this.blackHoleMassSolar),
-      t: this.cosmology.t,
-      dc: this.cosmology.comovingDistance(),
-      ageGyr: this.cosmology.universeAgeGyr(),
+      t: Number.isFinite(this.cosmology.t) ? this.cosmology.t : 0,
+      dc: Number.isFinite(dc) ? dc : 0,
+      ageGyr: Number.isFinite(ageGyr) ? ageGyr : 13.8,
     };
   }
 }

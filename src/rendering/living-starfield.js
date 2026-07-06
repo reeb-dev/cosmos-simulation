@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getRealismProfile } from '../physics/realism-profiles.js';
 
 /** Clasificación espectral OBAFGKM con función inicial de masa (más enanas M) */
 const SPECTRAL_CLASSES = [
@@ -127,7 +128,7 @@ export function createLivingStarfield(count = 5000, radius = 200, options = {}) 
   root.add(points, nebulaGroup);
 
   let time = 0;
-  let realismMode = cinematic ? 'cinematic' : 'standard';
+  let realismMode = cinematic ? 'cinematic' : 'realistic';
 
   function initStar(i) {
     const theta = Math.random() * Math.PI * 2;
@@ -152,7 +153,8 @@ export function createLivingStarfield(count = 5000, radius = 200, options = {}) 
 
   function update(scaleFactor, dt = 0.016, vitality = 0.5, waveDisplacementAt = null, mode = realismMode) {
     time += dt;
-    realismMode = mode === 'cinematic' ? 'cinematic' : (mode || realismMode);
+    realismMode = mode || realismMode;
+    const profile = getRealismProfile(realismMode);
     const pos = geometry.attributes.position.array;
     const col = geometry.attributes.color.array;
 
@@ -185,16 +187,16 @@ export function createLivingStarfield(count = 5000, radius = 200, options = {}) 
 
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.color.needsUpdate = true;
-    const sizeBoost = realismMode === 'cinematic' ? 1.25 : 1;
+    const sizeBoost = profile.starSize;
     material.size = (1.0 + vitality * 0.6) * sizeBoost;
-    material.opacity = realismMode === 'cinematic' ? 0.95 : 0.9;
+    material.opacity = profile.starOpacity;
 
     for (const neb of nebulaGroup.children) {
       const u = neb.userData;
       neb.scale.setScalar(scaleFactor * (1 + Math.sin(time * 0.4 + u.pulse) * 0.03));
       neb.position.set(u.cx * scaleFactor, u.cy * scaleFactor, u.cz * scaleFactor);
       const pts = neb.children[0];
-      if (pts?.material) pts.material.opacity = 0.25 + vitality * 0.15 + (realismMode === 'cinematic' ? 0.1 : 0);
+      if (pts?.material) pts.material.opacity = 0.22 + vitality * 0.12 + (profile.id === 'cinematic' ? 0.1 : 0);
     }
   }
 
@@ -222,7 +224,7 @@ export function createLivingStarfield(count = 5000, radius = 200, options = {}) 
   }
 
   function setRealism(mode) {
-    realismMode = mode === 'cinematic' ? 'cinematic' : 'standard';
+    realismMode = mode || 'realistic';
   }
 
   return { points, group: root, update, birthStar, deathStar, reset, setRealism, comovingPositions };
@@ -251,27 +253,78 @@ export function createCosmicGrid(size = 200, divisions = 20) {
   return { grid, update };
 }
 
-/** Fondo CMB: resplandor tenue del universo primordial (z ~ 1100) */
-export function createCMBBackground(radius = 500) {
-  const geo = new THREE.SphereGeometry(radius, 32, 32);
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0xffeedd,
-    transparent: true,
-    opacity: 0.04,
-    side: THREE.BackSide,
-    depthWrite: false,
-  });
+/** Fondo CMB estilo Planck: anisotropías en esfera interior */
+function makePlanckCmbTexture() {
+  const w = 512;
+  const h = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(w, h);
+  const data = img.data;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const u = x / w;
+      const v = y / h;
+      const theta = v * Math.PI;
+      const phi = u * Math.PI * 2;
+      let val = 2.725;
+      for (let l = 2; l <= 32; l++) {
+        const amp = 0.08 / l;
+        val += amp * Math.sin(l * theta + phi * (l % 7)) * Math.cos(phi * (l % 5));
+      }
+      const t = (val - 2.5) / 0.5;
+      const r = Math.min(255, Math.max(0, 200 + t * 80));
+      const g = Math.min(255, Math.max(0, 180 + t * 60));
+      const b = Math.min(255, Math.max(0, 220 + t * 40));
+      const i = (y * w + x) * 4;
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  return tex;
+}
+
+/** Fondo CMB: resplandor del universo primordial (z ~ 1100) + textura Planck opcional */
+export function createCMBBackground(radius = 500, { planckStyle = true } = {}) {
+  const geo = new THREE.SphereGeometry(radius, planckStyle ? 64 : 32, planckStyle ? 32 : 32);
+  const mat = planckStyle
+    ? new THREE.MeshBasicMaterial({
+        map: makePlanckCmbTexture(),
+        transparent: true,
+        opacity: 0.12,
+        side: THREE.BackSide,
+        depthWrite: false,
+      })
+    : new THREE.MeshBasicMaterial({
+        color: 0xffeedd,
+        transparent: true,
+        opacity: 0.04,
+        side: THREE.BackSide,
+        depthWrite: false,
+      });
   const mesh = new THREE.Mesh(geo, mat);
   const group = new THREE.Group();
   group.add(mesh);
 
   function update(z = 0) {
     const relic = Math.max(0, 1 - z / 1200);
-    mat.opacity = 0.02 + relic * 0.05;
-    const t = 2.725 * (1 + z);
-    const warm = Math.min(1, 2.725 / t);
-    mat.color.setRGB(1, 0.92 * warm + 0.08, 0.82 * warm + 0.1);
+    if (planckStyle) {
+      mat.opacity = 0.06 + relic * 0.14;
+    } else {
+      mat.opacity = 0.02 + relic * 0.05;
+      const t = 2.725 * (1 + z);
+      const warm = Math.min(1, 2.725 / t);
+      mat.color.setRGB(1, 0.92 * warm + 0.08, 0.82 * warm + 0.1);
+    }
   }
 
-  return { group, update };
+  return { group, update, planckEnabled: planckStyle };
 }

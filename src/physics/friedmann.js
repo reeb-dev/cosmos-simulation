@@ -1,5 +1,40 @@
 import { C } from './constants.js';
+import { DEFAULT_COSMOLOGY } from './constants.js';
 import { h0ToSI } from './units.js';
+
+function clampA(a) {
+  return Math.max(Number.isFinite(a) ? a : 1, 1e-6);
+}
+
+function safeNum(v, fallback) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+/** Normaliza parámetros ΛCDM para evitar H=0 o densidades inválidas. */
+export function sanitizeCosmologyParams({
+  H0 = DEFAULT_COSMOLOGY.H0,
+  OmegaM = DEFAULT_COSMOLOGY.OmegaM,
+  OmegaLambda = DEFAULT_COSMOLOGY.OmegaLambda,
+  OmegaK = 0,
+} = {}) {
+  let Om = Math.max(0, safeNum(OmegaM, DEFAULT_COSMOLOGY.OmegaM));
+  let Ol = Math.max(0, safeNum(OmegaLambda, DEFAULT_COSMOLOGY.OmegaLambda));
+  const H = Math.max(1, safeNum(H0, DEFAULT_COSMOLOGY.H0));
+  const sum = Om + Ol;
+  if (sum < 1e-6) {
+    Om = DEFAULT_COSMOLOGY.OmegaM;
+    Ol = DEFAULT_COSMOLOGY.OmegaLambda;
+  } else if (Math.abs(sum - 1) > 0.05) {
+    Om /= sum;
+    Ol /= sum;
+  }
+  return {
+    H0: H,
+    OmegaM: Om,
+    OmegaLambda: Ol,
+    OmegaK: safeNum(OmegaK, 0),
+  };
+}
 
 /**
  * Cosmología Friedmann (ΛCDM plano).
@@ -13,12 +48,17 @@ export class FriedmannSolver {
   }
 
   setCosmology({ H0, OmegaM, OmegaLambda, OmegaK }) {
-    this.H0 = H0;
-    this.OmegaM = OmegaM;
-    this.OmegaLambda = OmegaLambda;
-    this.OmegaK = OmegaK;
-    this.H0SI = h0ToSI(H0);
+    const p = sanitizeCosmologyParams({ H0, OmegaM, OmegaLambda, OmegaK });
+    this.H0 = p.H0;
+    this.OmegaM = p.OmegaM;
+    this.OmegaLambda = p.OmegaLambda;
+    this.OmegaK = p.OmegaK;
+    this.H0SI = h0ToSI(this.H0);
     this.tH = 1 / this.H0SI;
+    if (!Number.isFinite(this.a) || this.a <= 0) {
+      this.a = 1;
+      this.t = 0;
+    }
   }
 
   /** H(a) / H0 en unidades adimensionales */
@@ -65,13 +105,17 @@ export class FriedmannSolver {
 
   /** Un paso RK4: avanza t y a */
   step(dt) {
-    const state = { t: this.t, a: this.a, v: this.dadt(this.a) };
+    if (!Number.isFinite(dt) || dt <= 0) return this;
+    const state = { t: this.t, a: clampA(this.a), v: this.dadt(clampA(this.a)) };
 
-    const deriv = (s) => ({
-      dt: 1,
-      da: s.v,
-      dv: this.d2adt2(s.a),
-    });
+    const deriv = (s) => {
+      const aSafe = clampA(s.a);
+      return {
+        dt: 1,
+        da: s.v,
+        dv: this.d2adt2(aSafe),
+      };
+    };
 
     const k1 = deriv(state);
     const k2 = deriv({
@@ -91,8 +135,17 @@ export class FriedmannSolver {
     });
 
     this.t += (dt / 6) * (k1.dt + 2 * k2.dt + 2 * k3.dt + k4.dt);
-    this.a += (dt / 6) * (k1.da + 2 * k2.da + 2 * k3.da + k4.da);
-    this.a = Math.max(this.a, 1e-6);
+    this.a = clampA(this.a + (dt / 6) * (k1.da + 2 * k2.da + 2 * k3.da + k4.da));
+    return this;
+  }
+
+  /** Repara estado numérico corrupto (NaN por parámetros extremos). */
+  repair() {
+    if (!Number.isFinite(this.a) || this.a <= 0) {
+      this.a = 1;
+      this.t = 0;
+    }
+    if (!Number.isFinite(this.t)) this.t = 0;
     return this;
   }
 
@@ -113,13 +166,16 @@ export class FriedmannSolver {
 
   /** Distancia comóvil hasta redshift z (integración Simpson) */
   comovingDistanceAtZ(zTarget) {
+    const z = Math.max(0, safeNum(zTarget, 0));
+    if (z <= 0) return 0;
     const n = 200;
-    const dz = zTarget / n;
+    const dz = z / n;
     let sum = 0;
     for (let i = 0; i <= n; i++) {
-      const z = i * dz;
+      const zi = i * dz;
       const weight = i === 0 || i === n ? 1 : i % 2 === 0 ? 2 : 4;
-      sum += (weight * C) / this.HAtZ(z);
+      const Hz = Math.max(this.HAtZ(zi), 1e-30);
+      sum += (weight * C) / Hz;
     }
     return (dz / 3) * sum;
   }

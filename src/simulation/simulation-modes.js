@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { t } from '../i18n/i18n.js';
+import { showToast } from '../ui/toast.js';
+
 /**
  * Modos de simulación: controlan escena, cámara y HUD.
  */
@@ -6,7 +10,7 @@ export const SIMULATION_MODES = {
     id: 'black_hole',
     name: 'Agujero negro',
     subtitle: 'Motor híbrido Schwarzschild + Friedmann · Teorías del horizonte',
-    camera: { x: 0, y: 40, z: 120, tx: 0, ty: 0, tz: 0 },
+    camera: { x: 1.5, y: 11, z: 118, tx: 0, ty: 0, tz: 0 },
     maxDistance: 400,
     minDistanceFactor: 0.35,
     fogDensity: 0.0008,
@@ -133,6 +137,27 @@ export const SIMULATION_MODES = {
       bhOpacity: 0,
     },
   },
+  deep_field: {
+    id: 'deep_field',
+    name: 'Universo a escala',
+    subtitle: 'Campo profundo · estrellas con difracción · galaxias lejanas · vacío cósmico',
+    camera: { x: 35, y: 90, z: 480, tx: 8, ty: 0, tz: -12 },
+    maxDistance: 2800,
+    minDistanceFactor: 0.01,
+    fogDensity: 0,
+    scene: {
+      exterior: false,
+      horizon: false,
+      interior: false,
+      multiverse: false,
+      higgs: false,
+      string: false,
+      binary: false,
+      deepField: true,
+      bhScale: 0.015,
+      bhOpacity: 0.12,
+    },
+  },
 };
 
 export const MODE_IDS = Object.keys(SIMULATION_MODES);
@@ -162,8 +187,21 @@ export const PHYSICS_BREAK_THEORIES = [
   { id: 'paradox_engine', label: 'Máq. paradojas' },
 ];
 
+export function getModeName(id) {
+  return t(`modes.${id}.name`) !== `modes.${id}.name` ? t(`modes.${id}.name`) : SIMULATION_MODES[id]?.name ?? id;
+}
+
+export function getModeSubtitle(id) {
+  return t(`modes.${id}.subtitle`) !== `modes.${id}.subtitle` ? t(`modes.${id}.subtitle`) : SIMULATION_MODES[id]?.subtitle ?? '';
+}
+
 export function getMode(id) {
-  return SIMULATION_MODES[id] ?? SIMULATION_MODES[DEFAULT_MODE];
+  const base = SIMULATION_MODES[id] ?? SIMULATION_MODES[DEFAULT_MODE];
+  return {
+    ...base,
+    name: getModeName(base.id),
+    subtitle: getModeSubtitle(base.id),
+  };
 }
 
 export function applyCameraForMode(camera, controls, mode) {
@@ -184,10 +222,11 @@ export class SimulationModeManager {
 
   setMode(id) {
     const mode = getMode(id);
+    const prevMode = this.currentMode;
     this.currentMode = mode.id;
     const {
       camera, controls, exteriorGroup, horizonMembrane, interior,
-      multiverseWorld, higgsScene, stringScene, binaryScene, gwWaves, bh, scene, setMinDistance,
+      multiverseWorld, higgsScene, stringScene, binaryScene, deepField, gwWaves, bh, scene, setMinDistance,
       horizonSim, onTheoryChange,
     } = this.ctx;
 
@@ -205,7 +244,23 @@ export class SimulationModeManager {
     higgsScene.group.visible = s.higgs;
     stringScene?.group && (stringScene.group.visible = !!s.string);
     binaryScene?.group && (binaryScene.group.visible = !!s.binary);
+    deepField?.group && (deepField.group.visible = !!s.deepField);
     gwWaves?.group && (gwWaves.group.visible = !!s.binary);
+
+    if (s.deepField) {
+      deepField?.showScaleBar?.(true);
+      deepField?.reset?.(camera);
+      if (scene.fog) scene.fog.density = 0;
+      scene.background = new THREE.Color(0x000000);
+      camera.far = 5000;
+      camera.updateProjectionMatrix();
+    } else {
+      deepField?.showScaleBar?.(false);
+      if (scene.fog) scene.fog.density = mode.fogDensity;
+      scene.background = new THREE.Color(0x020210);
+      camera.far = 2000;
+      camera.updateProjectionMatrix();
+    }
 
     if (s.binary) {
       this.ctx.binarySim?.reset?.();
@@ -235,11 +290,15 @@ export class SimulationModeManager {
     this.ctx.guiSync?.();
     this.ctx.adaptGuiToMode?.(mode.id);
     this.ctx.modeExplainer?.showMode?.(mode.id, this.ctx.horizonSim?.theoryId);
+    this.ctx.modePicker?.refresh?.(mode.id);
+    if (prevMode !== mode.id) {
+      showToast(t('toast.modeChanged', { mode: mode.name }));
+    }
   }
 
   zoomToHorizon() {
     const { camera, controls } = this.ctx;
-    camera.position.set(0, 6, 48);
+    camera.position.set(0, 4, 46);
     controls.target.set(0, 0, 0);
     controls.update();
     this.ctx.cameraLife?.resetIdle?.();
@@ -249,18 +308,19 @@ export class SimulationModeManager {
   }
 
   updateHudLabel(mode = getMode(this.currentMode)) {
+    const m = mode?.id ? mode : getMode(this.currentMode);
     const tagline = document.querySelector('#hud .hud-tagline');
-    if (tagline) tagline.textContent = mode.subtitle;
+    if (tagline) tagline.textContent = m.subtitle;
     const modeLabel = document.getElementById('mode-bar-label');
-    if (modeLabel) modeLabel.textContent = mode.name;
+    if (modeLabel) modeLabel.textContent = m.name;
     const modeBadge = document.getElementById('hud-mode-badge');
-    if (modeBadge) modeBadge.textContent = mode.name;
+    if (modeBadge) modeBadge.textContent = m.name;
   }
 
   applySceneVisibility(cameraImmersion, interiorOpacity = 0, cameraOnlyImmersion = cameraImmersion) {
     const mode = getMode(this.currentMode);
     const s = mode.scene;
-    if (s.multiverse || s.higgs || s.binary || s.string) return;
+    if (s.multiverse || s.higgs || s.binary || s.string || s.deepField) return;
 
     // Exterior: solo ocultar si la cámara cruza el horizonte, no si solo la sonda está dentro
     this.ctx.exteriorGroup.visible = s.exterior && cameraOnlyImmersion < 0.95;

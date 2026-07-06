@@ -1,4 +1,5 @@
-import { MODE_EXPLANATIONS, THEORY_SUMMARIES } from '../data/simulation-explanations.js';
+import { t, getBundle } from '../i18n/i18n.js';
+import { getModeExplanation, getTheorySummary } from '../data/simulation-explanations.js';
 
 const STORAGE_PREFIX = 'explained_';
 const AUTO_EXPAND_MS = 5000;
@@ -7,7 +8,7 @@ function renderFaq(faq) {
   if (!faq?.length) return '';
   return `
     <div class="mode-explainer-faq">
-      <h4>Preguntas frecuentes</h4>
+      <h4>${t('explainer.sections.faq')}</h4>
       ${faq.map((item) => `
         <details class="mode-faq-item">
           <summary>${item.q}</summary>
@@ -18,17 +19,18 @@ function renderFaq(faq) {
 }
 
 function renderTheoryBlock(theoryId) {
-  if (!theoryId || !THEORY_SUMMARIES[theoryId]) return '';
+  const summary = getTheorySummary(theoryId);
+  if (!theoryId || !summary) return '';
   return `
     <div class="mode-explainer-theory">
-      <h4>ℹ️ Teoría activa</h4>
-      <p>${THEORY_SUMMARIES[theoryId]}</p>
+      <h4>${t('explainer.sections.activeTheory')}</h4>
+      <p>${summary}</p>
     </div>`;
 }
 
 function renderContent(modeId, theoryId = null) {
-  const data = MODE_EXPLANATIONS[modeId];
-  if (!data) return '<p class="mode-explainer-empty">Sin explicación para este modo.</p>';
+  const data = getModeExplanation(modeId);
+  if (!data) return `<p class="mode-explainer-empty">${t('explainer.empty')}</p>`;
 
   const theoryBlock =
     data.showTheorySummaries || modeId === 'theory_picker'
@@ -36,18 +38,18 @@ function renderContent(modeId, theoryId = null) {
       : '';
 
   return `
-    <p class="mode-explainer-adaptive-hint">💡 El panel <strong>Controles</strong> (derecha) muestra solo los ajustes relevantes para esta escena.</p>
+    <p class="mode-explainer-adaptive-hint">${t('explainer.adaptiveHint')}</p>
     <div class="mode-explainer-intro">${data.intro}</div>
     <div class="mode-explainer-section">
-      <h4>⚛️ Física detrás</h4>
+      <h4>${t('explainer.sections.physics')}</h4>
       <div>${data.physics}</div>
     </div>
     <div class="mode-explainer-section">
-      <h4>🎛️ Controles</h4>
+      <h4>${t('explainer.sections.controls')}</h4>
       <div>${data.controls}</div>
     </div>
     <div class="mode-explainer-section">
-      <h4>👁️ Qué ver en pantalla</h4>
+      <h4>${t('explainer.sections.watch')}</h4>
       <div>${data.whatToWatch}</div>
     </div>
     ${theoryBlock}
@@ -94,8 +96,11 @@ export function createModeExplainer() {
 
   function updateContent() {
     if (!currentMode) return;
-    const data = MODE_EXPLANATIONS[currentMode];
-    if (titleEl) titleEl.textContent = data?.title ?? currentMode;
+    const data = getModeExplanation(currentMode);
+    if (titleEl) {
+      titleEl.textContent = data?.title ?? currentMode;
+      titleEl.dataset.modeTitle = '1';
+    }
     if (iconEl) iconEl.textContent = data?.icon ?? 'ℹ️';
     bodyEl.innerHTML = renderContent(currentMode, currentTheory);
   }
@@ -134,6 +139,10 @@ export function createModeExplainer() {
     }
   }
 
+  function refresh() {
+    updateContent();
+  }
+
   toggleBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     setCollapsed(!collapsed);
@@ -142,9 +151,14 @@ export function createModeExplainer() {
 
   dismissBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
-    setCollapsed(true);
+    hide();
     if (currentMode) dismissFirstVisit(currentMode);
   });
+
+  function hide() {
+    panel.classList.remove('visible');
+    clearAutoExpand();
+  }
 
   panel.addEventListener('click', () => {
     if (collapsed) setCollapsed(false);
@@ -154,7 +168,18 @@ export function createModeExplainer() {
     showMode,
     updateTheory,
     setCollapsed,
-    toggle: () => setCollapsed(!collapsed),
+    refresh,
+    hide,
+    toggle: () => {
+      if (!panel.classList.contains('visible')) {
+        if (currentMode) {
+          panel.classList.add('visible');
+          setCollapsed(false);
+        }
+        return;
+      }
+      setCollapsed(!collapsed);
+    },
     get currentMode() {
       return currentMode;
     },
@@ -163,11 +188,11 @@ export function createModeExplainer() {
 
 /** Resumen de teoría para el panel del horizonte */
 export function getTheorySummaryHtml(theoryId) {
-  const summary = THEORY_SUMMARIES[theoryId];
+  const summary = getTheorySummary(theoryId);
   if (!summary) return '';
   return `
     <details class="theory-more-info">
-      <summary>ℹ️ Más info</summary>
+      <summary>${t('explainer.moreInfo')}</summary>
       <p class="theory-summary-text">${summary}</p>
     </details>`;
 }

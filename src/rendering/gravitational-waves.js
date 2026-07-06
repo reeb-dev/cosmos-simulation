@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getRealismProfile } from '../physics/realism-profiles.js';
 
 const MAX_RINGS = 48;
 const MAX_RADIUS = 280;
@@ -52,6 +53,11 @@ export function createGravitationalWaves() {
   let emitTimer = 0;
   let ringdownBursts = 0;
   let lastPhase = '';
+  let realismMode = 'realistic';
+
+  function setRealism(mode) {
+    realismMode = mode || 'realistic';
+  }
 
   function spawnRing(x, y, z, { amplitude = 0.4, speed = 55, gold = false } = {}) {
     const ring = rings.find((r) => !r.userData.active);
@@ -86,6 +92,9 @@ export function createGravitationalWaves() {
     const state = resolveState(simOrState);
     if (!state || state.phase === 'idle') return;
 
+    const profile = getRealismProfile(realismMode);
+    const waveSpeedMul = profile.gwWaveSpeed / 55;
+    const ampScale = profile.gwAmplitudeScale;
     const phase = state.gwPhase ?? state.phase;
     const lastStrain = state.lastStrain ?? state.gwStrain ?? 0;
     const lastFrequency = state.lastFrequency ?? state.gwFrequency ?? 20;
@@ -101,7 +110,7 @@ export function createGravitationalWaves() {
       if (phase === 'merger') {
         spawnMemoryPulse(bx, by, bz);
         for (let i = 0; i < 6; i++) {
-          spawnRing(bx, by, bz, { amplitude: 0.95, speed: 65 + i * 10, gold: true });
+          spawnRing(bx, by, bz, { amplitude: 0.95 * ampScale, speed: (65 + i * 10) * waveSpeedMul, gold: true });
         }
       }
       if (phase === 'ringdown') ringdownBursts = 3;
@@ -120,18 +129,18 @@ export function createGravitationalWaves() {
     if (emitTimer >= emitPeriod) {
       emitTimer = 0;
       if (phase === 'inspiral') {
-        const amp = 0.3 + lastStrain * 0.55;
-        const spd = 50 + lastFrequency * 0.08;
+        const amp = (0.3 + lastStrain * 0.55) * ampScale;
+        const spd = (50 + lastFrequency * 0.08) * waveSpeedMul;
         spawnRing(bx, by, bz, { amplitude: amp, speed: spd });
         if (lastStrain > 0.12) spawnRing(bx, by, bz, { amplitude: amp * 0.55, speed: spd * 0.88 });
       } else if (phase === 'merger' && mergerFlash > 0.15) {
-        spawnRing(bx, by, bz, { amplitude: 1, speed: 85, gold: true });
+        spawnRing(bx, by, bz, { amplitude: ampScale, speed: 85 * waveSpeedMul, gold: true });
       } else if (phase === 'ringdown' && ringdownBursts > 0) {
         ringdownBursts--;
-        spawnRing(bx, by, bz, { amplitude: ringdownAmplitude * 0.75, speed: 52 });
-        spawnRing(bx, by, bz, { amplitude: ringdownAmplitude * 0.45, speed: 44 });
+        spawnRing(bx, by, bz, { amplitude: ringdownAmplitude * 0.75 * ampScale, speed: 52 * waveSpeedMul });
+        spawnRing(bx, by, bz, { amplitude: ringdownAmplitude * 0.45 * ampScale, speed: 44 * waveSpeedMul });
       } else if (phase === 'death') {
-        spawnRing(bx, by, bz, { amplitude: 0.1, speed: 38 });
+        spawnRing(bx, by, bz, { amplitude: 0.1 * ampScale, speed: 38 * waveSpeedMul });
       }
     }
 
@@ -151,7 +160,7 @@ export function createGravitationalWaves() {
     }
 
     if (memoryPulse.userData.active) {
-      memoryPulse.userData.radius += 95 * dt;
+      memoryPulse.userData.radius += 95 * dt * (profile.gwWaveSpeed / 55);
       const r = memoryPulse.userData.radius;
       memoryPulse.scale.setScalar(r);
       memoryMat.opacity = mem * 0.55 * Math.max(0, 1 - r / 220);
@@ -206,5 +215,5 @@ export function createGravitationalWaves() {
     lastPhase = '';
   }
 
-  return { group, update, waveDisplacementAt, reset };
+  return { group, update, waveDisplacementAt, reset, setRealism };
 }

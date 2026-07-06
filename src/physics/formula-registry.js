@@ -1,10 +1,18 @@
-import { C, G, M_SUN } from './constants.js';
-import { schwarzschildRadius, schwarzschildRadiusVis } from './units.js';
+import { C, G, M_SUN, DEFAULT_BLACK_HOLE, DEFAULT_COSMOLOGY } from './constants.js';
+import { schwarzschildRadius, schwarzschildRadiusVis, massFromSolar } from './units.js';
 
 /** Constantes físicas adicionales */
 export const HBAR = 1.055e-34;
 export const K_B = 1.381e-23;
 export const MPC = 3.086e22;
+
+function safeNum(v, fallback = 0) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+function safeRs(ctx) {
+  return Math.max(safeNum(ctx.rsVis, schwarzschildRadiusVis(DEFAULT_BLACK_HOLE.massSolar)), 1e-12);
+}
 
 /**
  * Registro de fórmulas científicas.
@@ -55,11 +63,12 @@ export const FORMULA_REGISTRY = {
     category: 'agujero_negro',
     enabled: true,
     compute: (ctx) => {
-      const r = ctx.probeR || ctx.rsVis * 10;
-      const rs = schwarzschildRadiusVis(ctx.massSolar);
+      const rs = safeRs(ctx);
+      const r = Math.max(safeNum(ctx.probeR, rs * 10), rs * 1.001);
       const ratio = r / rs;
-      const dilation = ratio > 1 ? Math.sqrt(1 - 1 / ratio) : 0;
-      return { value: dilation, unit: 'adim', simValue: ctx.horizonDilation };
+      const dilation = ratio > 1 ? Math.sqrt(Math.max(0, 1 - 1 / ratio)) : 0;
+      const sim = safeNum(ctx.horizonDilation, dilation);
+      return { value: dilation, unit: 'adim', simValue: sim };
     },
   },
   isco: {
@@ -200,9 +209,10 @@ export const FORMULA_REGISTRY = {
     enabled: true,
     compute: (ctx) => {
       const H0si = (ctx.H0 * 1000) / MPC;
-      const omega = ctx.OmegaM + ctx.OmegaLambda;
+      const omega = Math.max(ctx.OmegaM + ctx.OmegaLambda, 1e-6);
       const age = (1 / H0si) * (2 / 3) * (1 / Math.sqrt(omega));
-      return { value: age, unit: 's', display: age / (3.156e7 * 1e9), displayUnit: 'Gyr' };
+      const display = age / (3.156e7 * 1e9);
+      return { value: age, unit: 's', display, displayUnit: 'Gyr' };
     },
   },
   tidal_force: {
@@ -287,27 +297,50 @@ export const FORMULA_CATEGORIES = {
   custom: 'Personalizada',
 };
 
+function safeMassKg(ctx) {
+  const massSolar = safeNum(ctx.massSolar, DEFAULT_BLACK_HOLE.massSolar);
+  return Math.max(safeNum(ctx.massKg, massFromSolar(massSolar)), 1e-30);
+}
+
+function safeRadiusVis(ctx, factor, minRsMul = 1.001) {
+  const rs = safeRs(ctx);
+  return Math.max(safeNum(ctx.orbitR ?? ctx.probeR, rs * factor), rs * minRsMul);
+}
+
 export function buildFormulaContext(universe, horizonSim, engine) {
-  const rs = universe.rsVis;
-  const readouts = universe.getReadouts();
+  const massSolar = safeNum(universe?.blackHoleMassSolar, DEFAULT_BLACK_HOLE.massSolar);
+  const rs = Math.max(safeNum(universe?.rsVis, schwarzschildRadiusVis(massSolar)), 1e-12);
+  const massKg = Math.max(safeNum(universe?.massKg, massFromSolar(massSolar)), 1e-30);
+  const readouts = universe?.getReadouts?.() ?? {};
+  const cosmo = universe?.cosmology ?? {};
+  const H0 = safeNum(cosmo.H0, DEFAULT_COSMOLOGY.H0);
+  const OmegaM = safeNum(cosmo.OmegaM, DEFAULT_COSMOLOGY.OmegaM);
+  const OmegaLambda = safeNum(cosmo.OmegaLambda, DEFAULT_COSMOLOGY.OmegaLambda);
+  const a = Math.max(safeNum(readouts.a, 1), 1e-12);
+  const visScale = safeNum(ctxVisScale(engine), 1e10);
+
   return {
-    massSolar: universe.blackHoleMassSolar,
-    massKg: universe.massKg,
+    massSolar,
+    massKg,
     rsVis: rs,
-    visScale: 1e10,
-    spin: universe.spin || 0,
-    a: readouts.a,
-    z: readouts.z,
-    H0: universe.cosmology.H0,
-    OmegaM: universe.cosmology.OmegaM,
-    OmegaLambda: universe.cosmology.OmegaLambda,
-    HNow: readouts.H,
-    dc: readouts.dc,
+    visScale,
+    spin: safeNum(universe?.spin, 0),
+    a,
+    z: safeNum(readouts.z, 0),
+    H0,
+    OmegaM,
+    OmegaLambda,
+    HNow: safeNum(readouts.H, H0),
+    dc: safeNum(readouts.dc, 0),
     orbitR: rs * 25,
-    probeR: horizonSim?.probeRadius ?? rs * 10,
-    impactParam: rs * 5 * (universe.visScale || 1e10) / 1e10,
-    horizonDilation: horizonSim?.effectiveTimeDilation,
+    probeR: Math.max(safeNum(horizonSim?.probeRadius, rs * 10), rs * 1.001),
+    impactParam: Math.max(rs * 5, schwarzschildRadius(massKg) * 0.01),
+    horizonDilation: safeNum(horizonSim?.effectiveTimeDilation, 1),
   };
+}
+
+function ctxVisScale(engine) {
+  return engine?.universe?.visScale ?? 1e10;
 }
 
 export function evaluateAllFormulas(ctx, customFormulas = []) {
@@ -333,10 +366,21 @@ export function evaluateAllFormulas(ctx, customFormulas = []) {
   return results;
 }
 
+function fmtNum(n) {
+  if (!Number.isFinite(n)) return '—';
+  if (Math.abs(n) < 1e-3 || Math.abs(n) > 1e6) return n.toExponential(3);
+  return n.toFixed(4);
+}
+
 export function formatFormulaValue(result) {
   if (!result?.result) return '—';
   const r = result.result;
-  if (r.display !== undefined) return `${r.display.toExponential(3)} ${r.displayUnit || ''}`;
-  if (Math.abs(r.value) < 1e-3 || Math.abs(r.value) > 1e6) return `${r.value.toExponential(3)} ${r.unit}`;
-  return `${r.value.toFixed(4)} ${r.unit}`;
+  if (r.display !== undefined) {
+    const disp = fmtNum(r.display);
+    if (disp === '—') return '—';
+    return `${disp} ${r.displayUnit || ''}`.trim();
+  }
+  const val = fmtNum(r.value);
+  if (val === '—') return '—';
+  return `${val} ${r.unit || ''}`.trim();
 }

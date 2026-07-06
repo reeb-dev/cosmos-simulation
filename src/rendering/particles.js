@@ -32,7 +32,7 @@ export function createParticleSystem(maxParticles = 20) {
     trailLines.push(line);
   }
 
-  function update(states) {
+  function update(states, opacityMul = 0.5) {
     for (let i = 0; i < particles.length; i++) {
       if (i < states.length) {
         const s = states[i];
@@ -43,6 +43,7 @@ export function createParticleSystem(maxParticles = 20) {
         particles[i].material.color.setHex(color);
 
         trailLines[i].visible = s.trail.length > 1;
+        trailLines[i].material.opacity = opacityMul;
         const positions = new Float32Array(s.trail.length * 3);
         for (let j = 0; j < s.trail.length; j++) {
           positions[j * 3] = s.trail[j].x;

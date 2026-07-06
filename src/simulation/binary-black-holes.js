@@ -1,6 +1,8 @@
 import { C, G, M_SUN } from '../physics/constants.js';
 import { schwarzschildRadiusVis } from '../physics/units.js';
 import { FORMULA_REGISTRY } from '../physics/formula-registry.js';
+import { getRealismProfile, qnmFrequencyHz } from '../physics/realism-profiles.js';
+import { t } from '../i18n/i18n.js';
 
 /** Fases del choque binario */
 export const BINARY_PHASE = {
@@ -12,22 +14,17 @@ export const BINARY_PHASE = {
   DEAD: 'dead',
 };
 
-const PHASE_LABELS = {
-  [BINARY_PHASE.IDLE]: 'En espera',
-  [BINARY_PHASE.INSPIRAL]: 'Inspiral (ondas GW)',
-  [BINARY_PHASE.MERGER]: '¡Fusión!',
-  [BINARY_PHASE.RINGDOWN]: 'Ringdown',
-  [BINARY_PHASE.EVAPORATION]: 'Evaporación Hawking',
-  [BINARY_PHASE.DEAD]: 'Muerte · vacío',
+const PHASE_EVENTS = {
+  [BINARY_PHASE.INSPIRAL]: 'binary.events.inspiral',
+  [BINARY_PHASE.MERGER]: 'binary.events.merger',
+  [BINARY_PHASE.RINGDOWN]: 'binary.events.ringdown',
+  [BINARY_PHASE.EVAPORATION]: 'binary.events.evaporation',
+  [BINARY_PHASE.DEAD]: 'binary.events.dead',
 };
 
-const PHASE_EVENTS = {
-  [BINARY_PHASE.INSPIRAL]: 'Los agujeros negros espiran... ondas gravitacionales arrancan energía orbital',
-  [BINARY_PHASE.MERGER]: '¡Fusión! Los horizontes se unen en un solo agujero negro',
-  [BINARY_PHASE.RINGDOWN]: 'Anillo de luz (ringdown) — el horizonte oscila y se estabiliza',
-  [BINARY_PHASE.EVAPORATION]: 'El agujero negro se evapora por radiación de Hawking...',
-  [BINARY_PHASE.DEAD]: 'Muerte del agujero negro — solo queda el vacío cuántico',
-};
+export function getBinaryPhaseLabel(phase) {
+  return t(`binary.phases.${phase}`) !== `binary.phases.${phase}` ? t(`binary.phases.${phase}`) : phase;
+}
 
 function gwEnergyLossRate(m1Kg, m2Kg, separationM) {
   const M = m1Kg + m2Kg;
@@ -77,15 +74,25 @@ export class BinaryBlackHoleSim {
     this.evapProgress = 0;
     this.evapBurst = 0;
     this.lastStrain = 0;
+    this.lastPhysicalStrain = 0;
     this.lastFrequency = 0;
     this.energyRadiated = 0;
+    this.elapsedTime = 0;
+    this.strainHistory = [];
     this.events = [];
     this._phaseLogged = new Set();
-    this._visToMeters = 1e10;
     this._started = false;
+    this.realismMode = 'realistic';
   }
 
-  configure({ m1Solar, m2Solar, separationVis, spin1, spin2, hawkingDeath, timeScale } = {}) {
+  /** Escala visual→metros calibrada por rₛ físico total */
+  get visToMeters() {
+    const mTot = (this.m1Solar + this.m2Solar) * M_SUN;
+    const rsPhys = (2 * G * mTot) / (C * C);
+    return rsPhys / Math.max(this.rs1 + this.rs2, 0.1);
+  }
+
+  configure({ m1Solar, m2Solar, separationVis, spin1, spin2, hawkingDeath, timeScale, realismMode } = {}) {
     if (m1Solar != null) this.m1Solar = m1Solar;
     if (m2Solar != null) this.m2Solar = m2Solar;
     if (separationVis != null) this.separationVis = separationVis;
@@ -93,6 +100,7 @@ export class BinaryBlackHoleSim {
     if (spin2 != null) this.spin2 = spin2;
     if (hawkingDeath != null) this.hawkingDeath = hawkingDeath;
     if (timeScale != null) this.timeScale = timeScale;
+    if (realismMode != null) this.realismMode = realismMode;
     if (this.phase === BINARY_PHASE.IDLE) this.orbitalAngle = 0;
   }
 
@@ -107,6 +115,8 @@ export class BinaryBlackHoleSim {
     this.evapProgress = 0;
     this.evapBurst = 0;
     this.mergedMassSolar = 0;
+    this.elapsedTime = 0;
+    this.strainHistory = [];
     this.logPhase(BINARY_PHASE.INSPIRAL);
   }
 
@@ -115,9 +125,13 @@ export class BinaryBlackHoleSim {
     this._phaseLogged.add(phase);
     const text = PHASE_EVENTS[phase];
     if (text) {
-      this.events.unshift({ text, time: performance.now() });
+      this.events.unshift({ text: t(text), time: performance.now() });
       if (this.events.length > 8) this.events.pop();
     }
+  }
+
+  get lastStrainPhysical() {
+    return this.lastPhysicalStrain;
   }
 
   get muSolar() {
@@ -145,7 +159,7 @@ export class BinaryBlackHoleSim {
   }
 
   get separationM() {
-    return this.separationVis * this._visToMeters;
+    return this.separationVis * this.visToMeters;
   }
 
   get barycenter() {
@@ -177,18 +191,28 @@ export class BinaryBlackHoleSim {
 
   /** Strain h ~ (4GM/c²r)(v²/c²) — orden de magnitud inspiral (GW150914-like) */
   _strainFromOrbit(sepM, m1, m2) {
+    const h = this._physicalStrainFromOrbit(sepM, m1, m2);
+    return Math.min(1, h * 1e21);
+  }
+
+  _physicalStrainFromOrbit(sepM, m1, m2) {
     const M = m1 + m2;
     const mu = (m1 * m2) / M;
     const v = Math.sqrt((G * M) / sepM);
-    const rChar = sepM;
-    const h0 = (4 * G * mu) / (C * C * rChar);
-    const h = h0 * (v / C) ** 2;
-    const scale = 1e21;
-    return Math.min(1, h * scale);
+    const h0 = (4 * G * mu) / (C * C * sepM);
+    return h0 * (v / C) ** 2;
+  }
+
+  _recordStrain(dt) {
+    this.elapsedTime += dt;
+    const entry = { t: this.elapsedTime, h: this.lastPhysicalStrain, phase: this.phase };
+    this.strainHistory.push(entry);
+    if (this.strainHistory.length > 800) this.strainHistory.shift();
   }
 
   step(dt) {
-    const t = dt * (this.timeScale || 1);
+    const profile = getRealismProfile(this.realismMode);
+    const t = dt * (this.timeScale || 1) * profile.binaryTimeScale;
     if (!this._started || this.phase === BINARY_PHASE.IDLE || this.phase === BINARY_PHASE.DEAD) {
       return;
     }
@@ -200,13 +224,14 @@ export class BinaryBlackHoleSim {
       const sepM = this.separationM;
       const dEdt = gwEnergyLossRate(m1, m2, sepM);
       const daDt = (2 * sepM ** 2) / (G * (m1 * m2 / (m1 + m2)) * (m1 + m2)) * (-dEdt);
-      const daVis = (daDt / this._visToMeters) * t;
+      const daVis = (daDt / this.visToMeters) * t;
 
       this.separationVis = Math.max(this.mergerThreshold * 0.98, this.separationVis + daVis);
       const omega = keplerOmega(m1, m2, sepM);
-      this.orbitalAngle += omega * t * 0.35;
+      this.orbitalAngle += omega * t * profile.orbitalFactor;
       this.lastFrequency = (omega / (2 * Math.PI)) * 2;
-      this.lastStrain = this._strainFromOrbit(sepM, m1, m2);
+      this.lastPhysicalStrain = this._physicalStrainFromOrbit(sepM, m1, m2);
+      this.lastStrain = Math.min(1, this.lastPhysicalStrain * 1e21);
       this.energyRadiated += dEdt * t;
 
       if (this.separationVis <= this.mergerThreshold) this._enterMerger();
@@ -214,6 +239,7 @@ export class BinaryBlackHoleSim {
       this.mergerFlash = Math.min(1, this.mergerFlash + t * 2.5);
       this.memoryPulse = Math.max(0, 1 - this.mergerFlash * 0.7);
       this.lastStrain = Math.min(1, 0.45 + (1 - this.mergerFlash) * 0.55);
+      this.lastPhysicalStrain = 1e-21 * (0.4 + (1 - this.mergerFlash) * 0.6);
       this.lastFrequency = 220 + this.mergerFlash * 200;
       if (this.mergerFlash >= 1) {
         this.phase = BINARY_PHASE.RINGDOWN;
@@ -223,9 +249,12 @@ export class BinaryBlackHoleSim {
       }
     } else if (this.phase === BINARY_PHASE.RINGDOWN) {
       this.ringdownTime += t;
-      this.ringdownAmplitude *= Math.exp(-t * 1.8);
+      const tau = 0.12 / Math.max(this.mergedMassSolar, 1);
+      this.ringdownAmplitude *= Math.exp(-t / tau);
+      const fQnm = qnmFrequencyHz(this.mergedMassSolar, this.mergedSpin);
       this.lastStrain = this.ringdownAmplitude * 0.6;
-      this.lastFrequency = 160 + this.mergedMassSolar * 4;
+      this.lastPhysicalStrain = 1e-21 * this.ringdownAmplitude * 0.5;
+      this.lastFrequency = fQnm;
       if (this.ringdownTime > 4 || this.ringdownAmplitude < 0.02) {
         this.ringdownAmplitude = 0;
         if (this.hawkingDeath) {
@@ -240,10 +269,11 @@ export class BinaryBlackHoleSim {
     } else if (this.phase === BINARY_PHASE.EVAPORATION) {
       const mKg = this.mergedMassSolar * M_SUN;
       const tEvap = hawkingLifetimeSec(mKg);
-      const accel = Math.max(1, this.timeScale) * 1e12;
+      const accel = Math.max(1, this.timeScale) * profile.hawkingAccel;
       this.evapProgress = Math.min(1, this.evapProgress + (t / tEvap) * accel);
       this.evapBurst = 0.3 + 0.7 * Math.pow(this.evapProgress, 3);
       this.lastStrain = 0.05 * (1 - this.evapProgress);
+      this.lastPhysicalStrain = 1e-22 * (1 - this.evapProgress);
       this.lastFrequency = 35 * (1 - this.evapProgress * 0.7);
       if (this.evapProgress >= 1) {
         this.phase = BINARY_PHASE.DEAD;
@@ -251,6 +281,7 @@ export class BinaryBlackHoleSim {
         this.logPhase(BINARY_PHASE.DEAD);
       }
     }
+    this._recordStrain(t);
   }
 
   _enterMerger() {
@@ -313,7 +344,7 @@ export class BinaryBlackHoleSim {
       massKg: (this.mergedMassSolar || this.m1Solar + this.m2Solar) * M_SUN,
     }).value;
     return {
-      phase: PHASE_LABELS[this.phase] ?? this.phase,
+      phase: getBinaryPhaseLabel(this.phase),
       separation: this.separationVis,
       m1: this.m1Solar,
       m2: this.m2Solar,

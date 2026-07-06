@@ -1,32 +1,27 @@
 import GUI from 'lil-gui';
+import { t, getBundle } from '../i18n/i18n.js';
+import { theoryPrefix, getTheoryName } from '../i18n/theory-i18n.js';
 import { DEFAULT_STATE } from '../simulation/reset-manager.js';
 import { HORIZON_THEORIES, THEORY_IDS } from '../simulation/horizon-theories.js';
-import { SIMULATION_MODES, MODE_IDS, FEATURED_THEORIES, PHYSICS_BREAK_THEORIES } from '../simulation/simulation-modes.js';
+import { SIMULATION_MODES, MODE_IDS, FEATURED_THEORIES, PHYSICS_BREAK_THEORIES, getModeName } from '../simulation/simulation-modes.js';
 import { EXPERIMENTS } from '../lab/theory-lab.js';
 import { FORMULA_PRESETS, createCustomFormula, saveCustomFormulas, clearCustomFormulasStorage } from '../lab/custom-formula.js';
 import { showResetToast } from './lab-panel.js';
 
-function theoryPrefix(theory) {
-  if (theory.physicsBreak) return '★★ ';
-  if (theory.fiction) return '★★ ';
-  if (theory.original || theory.speculative) return '★ ';
-  return '';
+function buildTheoryOptions() {
+  const opts = {};
+  for (const id of THEORY_IDS) {
+    opts[getTheoryName(id)] = id;
+  }
+  return opts;
 }
 
-const theoryOptions = {};
-for (const id of THEORY_IDS) {
-  const t = HORIZON_THEORIES[id];
-  theoryOptions[`${theoryPrefix(t)}${t.name}`] = id;
-}
-
-function theoryNameById(id) {
-  const t = HORIZON_THEORIES[id];
-  return `${theoryPrefix(t)}${t.name}`;
-}
-
-const modeOptions = {};
-for (const id of MODE_IDS) {
-  modeOptions[SIMULATION_MODES[id].name] = id;
+function buildModeOptions() {
+  const opts = {};
+  for (const id of MODE_IDS) {
+    opts[getModeName(id)] = id;
+  }
+  return opts;
 }
 
 /** Carpetas visibles y granularidad de controles por modo de escena */
@@ -74,29 +69,40 @@ export const MODE_CONTROL_MAP = {
     horizon: 'theory',
     sim: 'basic',
   },
+  deep_field: {
+    folders: ['cosmo', 'sim', 'lab', 'reset'],
+    featured: false,
+    cosmo: 'full',
+    sim: 'full',
+  },
 };
 
-const FOLDER_DEFAULT_TITLES = {
-  bh: 'Agujero negro',
-  cosmo: 'Cosmología',
-  horizon: 'Horizonte',
-  sim: 'Simulación',
-  lab: 'Laboratorio',
-  binary: 'Choque binario',
-  reset: 'Reset',
-};
+function folderDefaultTitles() {
+  return {
+    bh: t('gui.bh'),
+    cosmo: t('gui.cosmo'),
+    horizon: t('gui.horizon'),
+    sim: t('gui.sim'),
+    lab: t('gui.lab'),
+    binary: t('gui.binary'),
+    reset: t('gui.reset'),
+  };
+}
 
 const FOLDER_MODE_TITLES = {
-  multiverse: { cosmo: 'Parámetros del multiverso' },
-  string_theory: { horizon: 'Teoría de cuerdas' },
+  multiverse: { cosmo: 'gui.cosmoMultiverse' },
+  string_theory: { horizon: 'gui.horizonStrings' },
 };
 
 /**
  * GUI unificada con sincronización bidireccional.
  */
 export function createMasterGui(ctx) {
-  const gui = new GUI({ title: 'Controles', width: 280 });
+  const gui = new GUI({ title: t('gui.title'), width: 280 });
   gui.domElement.style.marginTop = '8px';
+
+  let theoryOptions = buildTheoryOptions();
+  let modeOptions = buildModeOptions();
 
   const state = {
     massSolar: ctx.universe.blackHoleMassSolar,
@@ -111,21 +117,31 @@ export function createMasterGui(ctx) {
     showGeodesics: ctx.universe.showGeodesics,
     showLensing: ctx.universe.showLensing,
     lifeEnabled: ctx.lifeEngine.enabled,
-    realismMode: ctx.universe.realismMode ?? 'standard',
-    theory: theoryNameById(ctx.horizonSim.theoryId),
+    realismMode: ctx.universe.realismMode ?? 'realistic',
+    cosmicScale: ctx.deepField?.getCosmicScale?.() ?? 0.65,
+    theory: getTheoryName(ctx.horizonSim.theoryId),
     autoCamera: true,
-    simMode: SIMULATION_MODES[ctx.modeManager?.currentMode ?? 'black_hole'].name,
+    simMode: getModeName(ctx.modeManager?.currentMode ?? 'black_hole'),
   };
 
   const controllers = {};
   const folders = {};
+  const featuredControllers = [];
+  const ruptureControllers = [];
+  const labControllers = [];
 
-  const modeFolder = gui.addFolder('Modo de simulación');
+  const modeFolder = gui.addFolder(t('gui.modeFolder'));
   folders.mode = modeFolder;
-  controllers.simMode = modeFolder.add(state, 'simMode', Object.keys(modeOptions)).name('Escena').onChange((name) => {
+  controllers.simMode = modeFolder.add(state, 'simMode', Object.keys(modeOptions)).name(t('gui.scene')).onChange((name) => {
     const id = modeOptions[name];
     ctx.modeManager?.setMode(id);
   });
+  controllers.viewDeepField = modeFolder.add({
+    viewDeepField: () => {
+      ctx.modeManager?.setMode('deep_field');
+      syncFromUniverse();
+    },
+  }, 'viewDeepField').name(t('gui.viewUniverseAtScale'));
 
   const modeHint = { hint: '' };
   controllers.modeHint = modeFolder.add(modeHint, 'hint').name(' ').disable();
@@ -133,27 +149,26 @@ export function createMasterGui(ctx) {
 
   modeFolder.open();
 
-  const featured = {};
-  for (const t of FEATURED_THEORIES) featured[t.label] = t.id;
+  const featuredFolder = modeFolder.addFolder(t('gui.featuredFolder'));
+  folders.featured = featuredFolder;
   const pickTheory = (id) => {
     ctx.horizonSim.setTheory(id);
     ctx.onTheoryChange(id);
     ctx.modeManager?.zoomToHorizon?.();
     syncFromUniverse();
   };
-  const featuredFolder = modeFolder.addFolder('Teorías destacadas');
-  folders.featured = featuredFolder;
-  for (const t of FEATURED_THEORIES) {
-    featuredFolder.add({ pick: () => pickTheory(t.id) }, 'pick').name(t.label);
+  for (const ft of FEATURED_THEORIES) {
+    const ctrl = featuredFolder.add({ pick: () => pickTheory(ft.id) }, 'pick').name(t(`featuredTheories.${ft.id}`));
+    featuredControllers.push({ ctrl, id: ft.id });
   }
 
-  const bh = gui.addFolder('Agujero negro');
+  const bh = gui.addFolder(t('gui.bh'));
   folders.bh = bh;
-  controllers.mass = bh.add(state, 'massSolar', 1, 100, 1).name('Masa (M☉)').onChange((v) => {
+  controllers.mass = bh.add(state, 'massSolar', 1, 100, 1).name(t('gui.mass')).onChange((v) => {
     ctx.universe.setBlackHoleMass(v);
     ctx.onRsChange();
   });
-  controllers.spin = bh.add(state, 'spin', 0, 0.998, 0.01).name('Spin Kerr').onChange((v) => {
+  controllers.spin = bh.add(state, 'spin', 0, 0.998, 0.01).name(t('gui.spin')).onChange((v) => {
     ctx.universe.spin = v;
     ctx.onRsChange();
   });
@@ -167,43 +182,48 @@ export function createMasterGui(ctx) {
     spin2: ctx.binarySim?.spin2 ?? 0.4,
     hawkingDeath: ctx.binarySim?.hawkingDeath ?? true,
   };
-  const binaryFolder = gui.addFolder('Choque binario');
+  const binaryFolder = gui.addFolder(t('gui.binary'));
   folders.binary = binaryFolder;
-  binaryFolder.add(binaryState, 'm1', 5, 80, 1).name('M₁ (M☉)').onChange((v) => {
+  binaryFolder.add(binaryState, 'm1', 5, 80, 1).name(t('gui.m1')).onChange((v) => {
     ctx.binarySim?.configure({ m1Solar: v });
   });
-  binaryFolder.add(binaryState, 'm2', 5, 80, 1).name('M₂ (M☉)').onChange((v) => {
+  binaryFolder.add(binaryState, 'm2', 5, 80, 1).name(t('gui.m2')).onChange((v) => {
     ctx.binarySim?.configure({ m2Solar: v });
   });
-  binaryFolder.add(binaryState, 'separation', 30, 150, 1).name('Separación').onChange((v) => {
+  binaryFolder.add(binaryState, 'separation', 30, 150, 1).name(t('gui.separation')).onChange((v) => {
     ctx.binarySim?.configure({ separationVis: v });
   });
-  binaryFolder.add(binaryState, 'spin1', 0, 0.998, 0.01).name('Spin M₁').onChange((v) => {
+  binaryFolder.add(binaryState, 'spin1', 0, 0.998, 0.01).name(t('gui.spin1')).onChange((v) => {
     ctx.binarySim?.configure({ spin1: v });
   });
-  binaryFolder.add(binaryState, 'spin2', 0, 0.998, 0.01).name('Spin M₂').onChange((v) => {
+  binaryFolder.add(binaryState, 'spin2', 0, 0.998, 0.01).name(t('gui.spin2')).onChange((v) => {
     ctx.binarySim?.configure({ spin2: v });
   });
-  binaryFolder.add(binaryState, 'hawkingDeath').name('Muerte por Hawking').onChange((v) => {
+  binaryFolder.add(binaryState, 'hawkingDeath').name(t('gui.hawkingDeath')).onChange((v) => {
     ctx.binarySim?.configure({ hawkingDeath: v });
   });
   binaryFolder.add({
     gw150914: () => {
       binaryState.m1 = 36;
       binaryState.m2 = 29;
-      binaryState.separation = 48;
-      binaryState.spin1 = 0.3;
-      binaryState.spin2 = 0.2;
+      binaryState.spin1 = 0.7;
+      binaryState.spin2 = -0.4;
+      binaryState.separation = 95;
       ctx.binarySim?.configure({
         m1Solar: 36,
         m2Solar: 29,
-        separationVis: 48,
-        spin1: 0.3,
-        spin2: 0.2,
+        spin1: 0.7,
+        spin2: -0.4,
+        separationVis: 95,
+        hawkingDeath: binaryState.hawkingDeath,
+        timeScale: ctx.universe.timeScale,
+        realismMode: 'realistic',
       });
-      ctx.guiSync?.();
+      ctx.modeManager?.setMode('binary_merger');
+      ctx.binarySim?.startCollision();
+      syncFromUniverse();
     },
-  }, 'gw150914').name('GW150914 (LIGO) · Abbott+2016');
+  }, 'gw150914').name(t('gui.gw150914'));
   binaryFolder.add({
     start: () => {
       ctx.modeManager?.setMode('binary_merger');
@@ -218,26 +238,19 @@ export function createMasterGui(ctx) {
       });
       ctx.binarySim?.startCollision();
     },
-  }, 'start').name('▶ Iniciar colisión');
+  }, 'start').name(t('gui.startCollision'));
   binaryFolder.add({
     resetBinary: () => {
       ctx.binarySim?.reset();
       ctx.binaryScene?.reset?.();
       ctx.gwWaves?.reset?.();
     },
-  }, 'resetBinary').name('↺ Reiniciar binario');
+  }, 'resetBinary').name(t('gui.resetBinary'));
 
-  const cosmo = gui.addFolder('Cosmología');
+  const cosmoPresets = getBundle('gui.cosmoPresets') ?? {};
+  const cosmo = gui.addFolder(t('gui.cosmo'));
   folders.cosmo = cosmo;
-  controllers.preset = cosmo.add(state, 'cosmoPreset', {
-    'ΛCDM': 'lcdm',
-    'Planck 2018': 'planck2018',
-    'Hubble alto': 'hubble_tension_high',
-    'Hubble bajo': 'hubble_tension_low',
-    'Solo materia': 'matter_dominated',
-    'Einstein-de Sitter': 'einstein_de_sitter',
-    'Personalizado': 'custom',
-  }).name('Modelo').onChange((v) => {
+  controllers.preset = cosmo.add(state, 'cosmoPreset', cosmoPresets).name(t('gui.model') || 'Model').onChange((v) => {
     if (v === 'custom') return;
     ctx.theoryLab.applyCosmologyPreset(v);
     syncFromUniverse();
@@ -245,64 +258,86 @@ export function createMasterGui(ctx) {
   controllers.H0 = cosmo.add(state, 'H0', 50, 90, 0.5).name('H₀').onChange(applyCosmo);
   controllers.Om = cosmo.add(state, 'OmegaM', 0, 1, 0.01).name('Ωₘ').onChange(applyCosmo);
   controllers.OL = cosmo.add(state, 'OmegaLambda', 0, 1, 0.01).name('ΩΛ').onChange(applyCosmo);
+  controllers.cosmicScale = cosmo.add(state, 'cosmicScale', 0, 1, 0.01).name(t('gui.cosmicScale')).onChange((v) => {
+    ctx.deepField?.setCosmicScale?.(v);
+  });
 
   function applyCosmo() {
-    ctx.universe.setCosmology({ H0: state.H0, OmegaM: state.OmegaM, OmegaLambda: state.OmegaLambda });
+    ctx.universe.setCosmology({
+      H0: state.H0,
+      OmegaM: state.OmegaM,
+      OmegaLambda: state.OmegaLambda,
+    });
+    ctx.universe.repairCosmology();
+    state.H0 = ctx.universe.cosmology.H0;
+    state.OmegaM = ctx.universe.cosmology.OmegaM;
+    state.OmegaLambda = ctx.universe.cosmology.OmegaLambda;
     state.cosmoPreset = 'custom';
     if (controllers.preset) controllers.preset.setValue('custom');
   }
   cosmo.open();
 
-  const horizon = gui.addFolder('Horizonte');
+  const horizon = gui.addFolder(t('gui.horizon'));
   folders.horizon = horizon;
-  controllers.theory = horizon.add(state, 'theory', Object.keys(theoryOptions)).name('Teoría').onChange((name) => {
+  controllers.theory = horizon.add(state, 'theory', Object.keys(theoryOptions)).name(t('gui.theory')).onChange((name) => {
     const id = theoryOptions[name];
     ctx.horizonSim.setTheory(id);
     ctx.onTheoryChange(id);
   });
-  controllers.launchProbe = horizon.add({ launch: () => { ctx.probe.reset(); ctx.horizonSim.launchProbe(); } }, 'launch').name('▶ Enviar sonda');
-  controllers.resetProbe = horizon.add({ resetProbe: () => ctx.resetManager.resetProbe() }, 'resetProbe').name('↺ Reset sonda');
+  controllers.launchProbe = horizon.add({ launch: () => { ctx.probe.reset(); ctx.horizonSim.launchProbe(); } }, 'launch').name(t('gui.launchProbe'));
+  controllers.resetProbe = horizon.add({ resetProbe: () => ctx.resetManager.resetProbe() }, 'resetProbe').name(t('gui.resetProbe'));
 
-  const ruptureFolder = horizon.addFolder('★★ Ruptura física');
+  const ruptureFolder = horizon.addFolder(t('gui.ruptureFolder'));
   folders.rupture = ruptureFolder;
-  ruptureFolder.add({ aviso: '⚠ Violan física a propósito' }, 'aviso').disable();
-  for (const t of PHYSICS_BREAK_THEORIES) {
-    ruptureFolder.add({ pick: () => pickTheory(t.id) }, 'pick').name(t.label);
+  ruptureFolder.add({ aviso: t('gui.ruptureWarning') }, 'aviso').disable();
+  for (const rt of PHYSICS_BREAK_THEORIES) {
+    const ctrl = ruptureFolder.add({ pick: () => pickTheory(rt.id) }, 'pick').name(t(`physicsBreakTheories.${rt.id}`));
+    ruptureControllers.push({ ctrl, id: rt.id });
   }
 
   horizon.open();
 
-  const sim = gui.addFolder('Simulación');
+  const realismLabels = {
+    [t('gui.realismRealistic')]: 'realistic',
+    [t('gui.realismStandard')]: 'standard',
+    [t('gui.realismCinematic')]: 'cinematic',
+  };
+
+  const sim = gui.addFolder(t('gui.sim'));
   folders.sim = sim;
-  controllers.time = sim.add(state, 'timeScaleLog', 2, 7, 0.1).name('Velocidad (10^x)').onChange((v) => {
+  controllers.time = sim.add(state, 'timeScaleLog', 2, 7, 0.1).name(t('gui.timeScale')).onChange((v) => {
     ctx.universe.timeScale = 10 ** v;
     ctx.binarySim?.configure({ timeScale: ctx.universe.timeScale });
   });
-  controllers.paused = sim.add(state, 'paused').name('Pausar').onChange((v) => { ctx.universe.paused = v; });
-  controllers.exp = sim.add(state, 'showExpansion').name('Expansión').onChange((v) => { ctx.universe.showExpansion = v; });
-  controllers.geo = sim.add(state, 'showGeodesics').name('Geodésicas').onChange((v) => { ctx.universe.showGeodesics = v; });
-  controllers.lens = sim.add(state, 'showLensing').name('Lensing').onChange((v) => { ctx.universe.showLensing = v; });
-  controllers.life = sim.add(state, 'lifeEnabled').name('Universo vivo').onChange((v) => { ctx.lifeEngine.enabled = v; });
-  controllers.realism = sim.add(state, 'realismMode', { Estándar: 'standard', Cinemático: 'cinematic' }).name('Realismo').onChange((v) => {
+  controllers.paused = sim.add(state, 'paused').name(t('gui.pause')).onChange((v) => { ctx.universe.paused = v; });
+  controllers.exp = sim.add(state, 'showExpansion').name(t('gui.expansion')).onChange((v) => { ctx.universe.showExpansion = v; });
+  controllers.geo = sim.add(state, 'showGeodesics').name(t('gui.geodesics')).onChange((v) => { ctx.universe.showGeodesics = v; });
+  controllers.lens = sim.add(state, 'showLensing').name(t('gui.lensing')).onChange((v) => { ctx.universe.showLensing = v; });
+  controllers.life = sim.add(state, 'lifeEnabled').name(t('gui.life')).onChange((v) => { ctx.lifeEngine.enabled = v; });
+  controllers.realism = sim.add(state, 'realismMode', realismLabels).name(t('gui.realism')).onChange((v) => {
     ctx.universe.realismMode = v;
+    ctx.binarySim?.configure({ realismMode: v });
     ctx.starfield?.setRealism?.(v);
     ctx.galaxyField?.setRealism?.(v);
+    ctx.deepField?.setRealism?.(v);
+    ctx.gwWaves?.setRealism?.(v);
   });
-  controllers.autoCam = sim.add(state, 'autoCamera').name('Cámara auto (8s)').onChange((v) => {
+  controllers.autoCam = sim.add(state, 'autoCamera').name(t('gui.autoCamera')).onChange((v) => {
     ctx.cameraLife.setEnabled?.(v);
   });
-  controllers.tour = sim.add({ tour: () => ctx.cosmicTour?.start() }, 'tour').name('▶ Tour 60s');
+  controllers.tour = sim.add({ tour: () => ctx.cosmicTour?.start() }, 'tour').name(t('gui.tour'));
   sim.open();
 
-  const lab = gui.addFolder('Laboratorio');
+  const lab = gui.addFolder(t('gui.lab'));
   folders.lab = lab;
   for (const [id, exp] of Object.entries(EXPERIMENTS)) {
-    lab.add({ run: () => ctx.onExperiment(id, ctx.theoryLab.runExperiment(id)) }, 'run').name(exp.name);
+    const ctrl = lab.add({ run: () => ctx.onExperiment(id, ctx.theoryLab.runExperiment(id)) }, 'run').name(exp.name);
+    labControllers.push({ ctrl, id, name: exp.name });
   }
-  const customParams = { name: 'Mi fórmula', expr: 'sqrt(G * M / r)', preset: 'Energía en reposo' };
-  lab.add(customParams, 'name').name('Fórmula nombre');
-  lab.add(customParams, 'expr').name('Expresión');
-  lab.add(customParams, 'preset', FORMULA_PRESETS.map((p) => p.name)).name('Preset').onChange((n) => {
+  const customParams = { name: t('gui.formulaName'), expr: 'sqrt(G * M / r)', preset: FORMULA_PRESETS[0]?.name ?? '' };
+  lab.add(customParams, 'name').name(t('gui.formulaName'));
+  lab.add(customParams, 'expr').name(t('gui.expression'));
+  lab.add(customParams, 'preset', FORMULA_PRESETS.map((p) => p.name)).name(t('gui.preset')).onChange((n) => {
     const p = FORMULA_PRESETS.find((x) => x.name === n);
     if (p) customParams.expr = p.expr;
   });
@@ -315,18 +350,18 @@ export function createMasterGui(ctx) {
         saveCustomFormulas(ctx.customFormulas);
       } catch (e) { alert(e.message); }
     },
-  }, 'addFormula').name('+ Fórmula');
+  }, 'addFormula').name(t('gui.addFormula'));
   lab.add({ clearFormulas: () => {
     clearCustomFormulasStorage();
     ctx.customFormulas.length = 0;
     ctx.theoryLab.setCustomFormulas([]);
-  }}, 'clearFormulas').name('Borrar fórmulas custom');
+  }}, 'clearFormulas').name(t('gui.clearFormulas'));
 
-  const resetFolder = gui.addFolder('Reset');
+  const resetFolder = gui.addFolder(t('gui.reset'));
   folders.reset = resetFolder;
-  resetFolder.add({ partial: () => { ctx.resetManager.resetSimulation(); showResetToast('↺ Simulación reiniciada'); } }, 'partial').name('↺ Simulación');
-  resetFolder.add({ full: () => { ctx.resetManager.fullReset(); ctx.guiSyncDefaults?.(); showResetToast('⏮ Reset TOTAL'); } }, 'full').name('⏮ Reset TOTAL');
-  resetFolder.add({ fullClear: () => { ctx.resetManager.fullReset({ clearCustomFormulas: true }); ctx.guiSyncDefaults?.(); showResetToast('⏮ Reset + fórmulas borradas'); } }, 'fullClear').name('⏮ Reset + borrar fórmulas');
+  resetFolder.add({ partial: () => { ctx.resetManager.resetSimulation(); showResetToast(t('toast.resetSim')); } }, 'partial').name(t('gui.resetSim'));
+  resetFolder.add({ full: () => { ctx.resetManager.fullReset(); ctx.guiSyncDefaults?.(); showResetToast(t('toast.resetFull')); } }, 'full').name(t('gui.resetFull'));
+  resetFolder.add({ fullClear: () => { ctx.resetManager.fullReset({ clearCustomFormulas: true }); ctx.guiSyncDefaults?.(); showResetToast(t('toast.resetFullClear')); } }, 'fullClear').name(t('gui.resetFullClear'));
   resetFolder.open();
 
   function syncFromUniverse() {
@@ -343,9 +378,10 @@ export function createMasterGui(ctx) {
     state.showGeodesics = u.showGeodesics;
     state.showLensing = u.showLensing;
     state.lifeEnabled = ctx.lifeEngine.enabled;
-    state.realismMode = u.realismMode ?? 'standard';
-    state.theory = theoryNameById(ctx.horizonSim.theoryId);
-    state.simMode = SIMULATION_MODES[ctx.modeManager?.currentMode ?? 'black_hole'].name;
+    state.realismMode = u.realismMode ?? 'realistic';
+    state.cosmicScale = ctx.deepField?.getCosmicScale?.() ?? state.cosmicScale;
+    state.theory = getTheoryName(ctx.horizonSim.theoryId);
+    state.simMode = getModeName(ctx.modeManager?.currentMode ?? 'black_hole');
     for (const c of Object.values(controllers)) c?.updateDisplay?.();
   }
 
@@ -363,9 +399,9 @@ export function createMasterGui(ctx) {
     state.showGeodesics = d.showGeodesics;
     state.showLensing = d.showLensing;
     state.lifeEnabled = d.lifeEnabled;
-    state.realismMode = d.realismMode ?? 'standard';
-    state.theory = theoryNameById(d.theoryId);
-    state.simMode = SIMULATION_MODES.black_hole.name;
+    state.realismMode = d.realismMode ?? 'realistic';
+    state.theory = getTheoryName(d.theoryId);
+    state.simMode = getModeName('black_hole');
     syncFromUniverse();
   }
 
@@ -390,18 +426,20 @@ export function createMasterGui(ctx) {
 
   function adaptControlsToMode(modeId) {
     const config = MODE_CONTROL_MAP[modeId] ?? MODE_CONTROL_MAP.black_hole;
-    const mode = SIMULATION_MODES[modeId] ?? SIMULATION_MODES.black_hole;
+    const mode = getModeName(modeId);
 
-    modeHint.hint = `Controles para: ${mode.name}`;
+    modeHint.hint = t('gui.modeHint', { mode });
     controllers.modeHint?.updateDisplay?.();
 
     setFolderVisible(folders.featured, !!config.featured);
 
+    const defaults = folderDefaultTitles();
     for (const key of TOP_LEVEL_FOLDERS) {
       const visible = config.folders.includes(key);
       setFolderVisible(folders[key], visible);
       if (visible) {
-        setFolderTitle(folders[key], FOLDER_MODE_TITLES[modeId]?.[key] ?? FOLDER_DEFAULT_TITLES[key]);
+        const titleKey = FOLDER_MODE_TITLES[modeId]?.[key];
+        setFolderTitle(folders[key], titleKey ? t(titleKey) : defaults[key]);
       }
     }
 
@@ -418,11 +456,14 @@ export function createMasterGui(ctx) {
       controllers.H0?.hide();
       controllers.Om?.show();
       controllers.OL?.show();
+      controllers.cosmicScale?.hide();
     } else if (config.cosmo === 'full') {
       controllers.preset?.show();
       controllers.H0?.show();
       controllers.Om?.show();
       controllers.OL?.show();
+      if (modeId === 'deep_field') controllers.cosmicScale?.show();
+      else controllers.cosmicScale?.hide();
     }
 
     if (config.horizon === 'theory') {
@@ -446,10 +487,76 @@ export function createMasterGui(ctx) {
     }
   }
 
+  function refreshGuiI18n() {
+    gui.title(t('gui.title'));
+    theoryOptions = buildTheoryOptions();
+    modeOptions = buildModeOptions();
+    const currentModeId = ctx.modeManager?.currentMode ?? 'black_hole';
+    const currentTheoryId = ctx.horizonSim.theoryId;
+
+    setFolderTitle(folders.mode, t('gui.modeFolder'));
+    controllers.simMode?.options(Object.keys(modeOptions));
+    controllers.simMode?.name(t('gui.scene'));
+    controllers.viewDeepField?.name(t('gui.viewUniverseAtScale'));
+    state.simMode = getModeName(currentModeId);
+    controllers.simMode?.setValue(state.simMode);
+
+    setFolderTitle(folders.featured, t('gui.featuredFolder'));
+    for (const { ctrl, id } of featuredControllers) {
+      ctrl.name(t(`featuredTheories.${id}`));
+    }
+
+    setFolderTitle(folders.bh, t('gui.bh'));
+    controllers.mass?.name(t('gui.mass'));
+    controllers.spin?.name(t('gui.spin'));
+    setFolderTitle(folders.binary, t('gui.binary'));
+    setFolderTitle(folders.cosmo, t('gui.cosmo'));
+    controllers.cosmicScale?.name(t('gui.cosmicScale'));
+    setFolderTitle(folders.horizon, t('gui.horizon'));
+    controllers.theory?.options(Object.keys(theoryOptions));
+    controllers.theory?.name(t('gui.theory'));
+    state.theory = getTheoryName(currentTheoryId);
+    controllers.theory?.setValue(state.theory);
+    controllers.launchProbe?.name(t('gui.launchProbe'));
+    controllers.resetProbe?.name(t('gui.resetProbe'));
+    setFolderTitle(folders.rupture, t('gui.ruptureFolder'));
+    for (const { ctrl, id } of ruptureControllers) {
+      ctrl.name(t(`physicsBreakTheories.${id}`));
+    }
+    setFolderTitle(folders.sim, t('gui.sim'));
+    controllers.time?.name(t('gui.timeScale'));
+    controllers.paused?.name(t('gui.pause'));
+    controllers.exp?.name(t('gui.expansion'));
+    controllers.geo?.name(t('gui.geodesics'));
+    controllers.lens?.name(t('gui.lensing'));
+    controllers.life?.name(t('gui.life'));
+    controllers.realism?.name(t('gui.realism'));
+    controllers.autoCam?.name(t('gui.autoCamera'));
+    controllers.tour?.name(t('gui.tour'));
+    setFolderTitle(folders.lab, t('gui.lab'));
+    setFolderTitle(folders.reset, t('gui.reset'));
+
+    adaptControlsToMode(currentModeId);
+    syncFromUniverse();
+  }
+
   ctx.adaptGuiToMode = adaptControlsToMode;
+  ctx.refreshGuiI18n = refreshGuiI18n;
   adaptControlsToMode(ctx.modeManager?.currentMode ?? 'black_hole');
 
-  return { gui, syncFromUniverse, syncToDefaults, adaptControlsToMode, controllers, folders };
+  let guiVisible = true;
+  ctx.guiVisible = true;
+  ctx.toggleGui = () => {
+    guiVisible = !guiVisible;
+    ctx.guiVisible = guiVisible;
+    gui.domElement.style.display = guiVisible ? '' : 'none';
+  };
+
+  return { gui, syncFromUniverse, syncToDefaults, adaptControlsToMode, refreshGuiI18n, controllers, folders, toggleGui: ctx.toggleGui };
 }
 
-export { theoryNameById, theoryOptions };
+export function theoryNameById(id) {
+  return getTheoryName(id);
+}
+
+export { buildTheoryOptions as theoryOptions };

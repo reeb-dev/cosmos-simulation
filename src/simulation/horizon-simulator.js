@@ -1,4 +1,5 @@
 import { DEFAULT_THEORY, HORIZON_THEORIES, PROBE_STATE } from './horizon-theories.js';
+import { t } from '../i18n/i18n.js';
 
 export class HorizonSimulator {
   constructor(rsVis) {
@@ -174,12 +175,8 @@ export class HorizonSimulator {
   }
 
   get immersionLabel() {
-    const labels = {
-      none: 'Exterior',
-      probe: 'Sonda en tránsito',
-      camera_approach: 'Zoom: acercándose al horizonte',
-      camera_inside: 'Zoom: dentro del horizonte',
-    };
-    return labels[this.immersionSource] ?? 'Exterior';
+    const key = `probe.immersion.${this.immersionSource}`;
+    const label = t(key);
+    return label !== key ? label : t('probe.immersion.none');
   }
 }
