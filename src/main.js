@@ -43,6 +43,7 @@ scene.add(horizonMembrane);
 
 const interior = createInteriorWorlds(engine.universe.rsVis);
 const horizonTransition = createHorizonTransition(camera);
+const probe = createProbe();
 
 function applyTheoryVisual(id) {
   const visual = getHorizonVisual(id);
@@ -57,10 +58,7 @@ function applyTheoryVisual(id) {
 }
 
 applyTheoryVisual(horizonSim.theoryId);
-scene.add(interior.group);
-
-const probe = createProbe();
-scene.add(probe.mesh, probe.trail);
+scene.add(interior.group, probe.mesh, probe.trail);
 
 const starfield = createLivingStarfield(5000, 200);
 const grid = createCosmicGrid(200, 20);

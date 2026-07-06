@@ -136,6 +136,7 @@ export function createHorizonTransition(camera) {
       flashDecay -= dt;
       mat.uniforms.flash.value = Math.max(0, flashDecay);
     }
+    mesh.visible = mat.uniforms.flash.value > 0.001;
   }
 
   return { mesh, flash, update };
