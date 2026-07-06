@@ -52,6 +52,13 @@ Las teorías con **★** son propias del motor o especulativas; **★★** es fi
 
 ### Vercel (recomendado)
 
+### Si `vercel login` o el token fallan
+
+1. Entra en [vercel.com/new](https://vercel.com/new) con tu cuenta.
+2. **Import Git Repository** → elige `reeb-dev/cosmos-simulation`.
+3. Deja el preset **Vite** (o detectado automáticamente); build: `npm run build`, output: `dist`.
+4. Pulsa **Deploy**. La URL será algo como `https://cosmos-simulation-*.vercel.app`; puedes fijar el dominio `cosmos-simulation.vercel.app` en **Project → Settings → Domains**.
+
 1. Importa el repositorio en [vercel.com](https://vercel.com) o usa la CLI:
 
 ```bash
