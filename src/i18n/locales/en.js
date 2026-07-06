@@ -202,6 +202,29 @@ export default {
           }
         ]
       },
+      "gargantua": {
+        "id": "gargantua",
+        "icon": "🎬",
+        "title": "Gargantua (Interstellar)",
+        "intro": "Dedicated <em>Interstellar</em>-style black hole mode: supermassive appearance, spin 0.99, ultra-thin edge-on accretion disk, bright photon ring, strong gravitational lensing and vertical lensed halos. Visually calibrated from the film (Double Negative / Thorne). Everything auto-configures on entry.",
+        "physics": "<strong>Physics basis:</strong> Kerr with <strong>rₛ = 2GM/c²</strong>, thin disk with Doppler beaming, photon sphere at <strong>1.5 rₛ</strong>, ISCO ~<strong>2.55 rₛ</strong>. <strong>Lensing:</strong> screen-space post-process at ~2.4× strength (not full numerical GR ray-tracing). Visual mass <strong>100 M☉</strong> and spin <strong>0.99</strong> for simulator scale; real Gargantua is ~10⁸ M☉.",
+        "controls": "Top selector → <strong>Gargantua (Interstellar)</strong> 🎬. Or Black hole → <strong>Gargantua view</strong>. Reduced controls: mass/spin, horizon theory, pause. Lensing always on. No cosmic expansion or living universe.",
+        "whatToWatch": "<ol>\n<li><strong>Edge-on view:</strong> thin orange-white disk, almost a bright line.</li>\n<li><strong>Photon ring:</strong> sharp halo at 1.5 rₛ around the black shadow.</li>\n<li><strong>Hard shadow:</strong> dark central silhouette with no disk light inside.</li>\n<li><strong>Lensed halos:</strong> vertical arcs above and below (bent disk image).</li>\n<li><strong>Background stars:</strong> distorted by lensing around the horizon.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "Why a separate mode from Black hole?",
+            "a": "This mode auto-sets camera, mass, spin, lensing and Gargantua visual profile. Black hole mode is generic and configurable; Gargantua is the ready-made cinematic experience."
+          },
+          {
+            "q": "Is it physically identical to the movie?",
+            "a": "The look follows Interstellar (edge-on disk, photon ring, strong lensing). The film used GR ray-tracing; here it's shader + pedagogical post-process."
+          },
+          {
+            "q": "Can I cross the horizon?",
+            "a": "Yes: zoom in or send a probe. Default theory is Singularity."
+          }
+        ]
+      },
       "multiverse": {
         "id": "multiverse",
         "icon": "🫧",
@@ -434,6 +457,10 @@ export default {
     "black_hole": {
       "name": "Black hole",
       "subtitle": "Hybrid Schwarzschild + Friedmann engine · Horizon theories"
+    },
+    "gargantua": {
+      "name": "Gargantua (Interstellar)",
+      "subtitle": "Edge-on disk · strong lensing · photon ring · film look"
     },
     "multiverse": {
       "name": "Multiverse",

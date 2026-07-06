@@ -339,8 +339,8 @@ function animate(now) {
 
   scene.fog.density = isBinary || isGalaxyCollision || isDeepField
     ? profile.fogDensity
-    : mode === 'black_hole'
-      ? profile.fogDensity * 0.28
+    : mode === 'black_hole' || mode === 'gargantua'
+      ? profile.fogDensity * (mode === 'gargantua' ? 0.2 : 0.28)
       : profile.fogDensity * 0.6;
   renderer.toneMappingExposure = profile.toneExposure;
   if (bh.diskMat.uniforms.diskIntensity) {
@@ -474,7 +474,7 @@ function animate(now) {
     starfield.points.material.opacity = 0.3 + extDim * 0.6;
     galaxyField.group.visible = cameraImmersion < 0.92;
     cmbBackground.group.visible = cameraImmersion < 0.95;
-    grid.grid.visible = cameraImmersion < 0.85 && modeManager.currentMode !== 'black_hole';
+    grid.grid.visible = cameraImmersion < 0.85 && modeManager.currentMode !== 'black_hole' && modeManager.currentMode !== 'gargantua';
     const camDist = camera.position.distanceTo(bhWorldPos);
     const rs = engine.universe.rsVis;
     const nearHorizon = Math.min(1, Math.max(0, 1 - (camDist - rs * 6) / (rs * 35)));

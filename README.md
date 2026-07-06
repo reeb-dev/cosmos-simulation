@@ -54,8 +54,9 @@ Guía completa: **[docs/ALCANCE.md](docs/ALCANCE.md)** · Exportación: **[docs/
 
 ### Vista Gargantua (Interstellar)
 
-1. Panel **Agujero negro → Vista Gargantua (Interstellar)** — configura masa 100 M☉, spin 0.99, lensing y cámara de canto.
-2. O **Simulación → Realismo → Gargantua (Interstellar)** solo para el perfil visual.
+**Modo dedicado** en el selector superior: **Gargantua (Interstellar)** 🎬 — disco de canto, lensing fuerte, anillo de fotones, configuración automática.
+
+También: Panel **Agujero negro → Vista Gargantua (Interstellar)** (salta al mismo modo).
 
 ## Tour guiado (60 s)
 

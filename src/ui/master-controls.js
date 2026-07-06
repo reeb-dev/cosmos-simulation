@@ -34,6 +34,13 @@ export const MODE_CONTROL_MAP = {
     horizon: 'full',
     sim: 'full',
   },
+  gargantua: {
+    folders: ['bh', 'horizon', 'sim', 'reset'],
+    featured: true,
+    bh: 'mass',
+    horizon: 'full',
+    sim: 'basic',
+  },
   multiverse: {
     folders: ['cosmo', 'sim', 'reset'],
     featured: false,

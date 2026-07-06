@@ -3,6 +3,7 @@ import { MODE_IDS, getModeName } from '../simulation/simulation-modes.js';
 
 const MODE_ICONS = {
   black_hole: '⚫',
+  gargantua: '🎬',
   multiverse: '🫧',
   higgs: '✨',
   cosmology: '🌌',

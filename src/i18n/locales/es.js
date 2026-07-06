@@ -202,6 +202,29 @@ export default {
           }
         ]
       },
+      "gargantua": {
+        "id": "gargantua",
+        "icon": "🎬",
+        "title": "Gargantua (Interstellar)",
+        "intro": "Modo dedicado al agujero negro estilo <em>Interestelar</em>: supermasivo, spin 0,99, disco de acreción ultradelgado visto de canto, anillo de fotones brillante, lensing gravitacional fuerte y halos verticales lensados. Calibrado visualmente a partir de las imágenes de la película (Double Negative / Thorne). No requiere ajustar parámetros: al entrar, todo se configura automáticamente.",
+        "physics": "<strong>Base física:</strong> Kerr con <strong>rₛ = 2GM/c²</strong>, disco fino con Doppler (lado acercándose más caliente), esfera de fotones a <strong>1,5 rₛ</strong>, ISCO ~<strong>2,55 rₛ</strong>. <strong>Lensing:</strong> post-proceso en pantalla con deflexión ~2,4× (no ray-tracing numérico completo). Masa visual <strong>100 M☉</strong> y spin <strong>0,99</strong> elegidos para la escala del simulador; Gargantua real es ~10⁸ M☉.",
+        "controls": "Selector superior → <strong>Gargantua (Interstellar)</strong> 🎬. También desde Agujero negro → <strong>Vista Gargantua</strong>. Controles reducidos: masa/spin, teoría del horizonte, pausa. Lensing siempre activo. Sin expansión cósmica ni universo vivo (foco en el BH).",
+        "whatToWatch": "<ol>\n<li><strong>Vista de canto:</strong> disco fino naranja-blanco, casi una línea brillante.</li>\n<li><strong>Anillo de fotones:</strong> halo nítido a 1,5 rₛ rodeando la sombra negra.</li>\n<li><strong>Sombra dura:</strong> silueta negra central sin luz del disco dentro.</li>\n<li><strong>Halos lensados:</strong> arcos verticales arriba y abajo (imagen del disco doblada por la gravedad).</li>\n<li><strong>Estrellas de fondo:</strong> distorsionadas por lensing alrededor del horizonte.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "¿Por qué un modo aparte del Agujero negro?",
+            "a": "Este modo fija automáticamente cámara, masa, spin, lensing y perfil visual Gargantua. El modo Agujero negro es genérico y configurable; Gargantua es la experiencia cinematográfica lista para usar."
+          },
+          {
+            "q": "¿Es físicamente idéntico a la película?",
+            "a": "La estética sigue el diseño de Interestelar (disco de canto, photon ring, lensing fuerte). La película usó ray-tracing GR; aquí es shader + post-proceso pedagógico."
+          },
+          {
+            "q": "¿Puedo cruzar el horizonte?",
+            "a": "Sí: haz zoom con la rueda o envía una sonda. La teoría activa es Singularidad por defecto."
+          }
+        ]
+      },
       "multiverse": {
         "id": "multiverse",
         "icon": "🫧",
@@ -434,6 +457,10 @@ export default {
     "black_hole": {
       "name": "Agujero negro",
       "subtitle": "Motor híbrido Schwarzschild + Friedmann · Teorías del horizonte"
+    },
+    "gargantua": {
+      "name": "Gargantua (Interestelar)",
+      "subtitle": "Disco de canto · lensing fuerte · anillo de fotones · estilo película"
     },
     "multiverse": {
       "name": "Multiverso",

@@ -23,6 +23,7 @@
 | Modo | Contenido |
 |------|-----------|
 | **Agujero negro** | Motor híbrido completo, disco de acreción, lensing, 39 teorías del horizonte |
+| **Gargantua (Interstellar)** | Modo cinematográfico dedicado: disco de canto, photon ring, lensing 2,4× |
 | **Multiverso** | Burbujas Friedmann con distintos Ωₘ/ΩΛ |
 | **Cosmología ΛCDM** | Expansión, redshift, CMB, galaxias |
 | **Universo a escala** | Campo profundo, SDSS, CMB Planck, difracción estelar |

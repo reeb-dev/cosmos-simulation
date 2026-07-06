@@ -1,7 +1,3 @@
-import { applyCameraForMode, getMode } from '../simulation/simulation-modes.js';
-import { showToast } from '../ui/toast.js';
-import { t } from '../i18n/i18n.js';
-
 /** Parámetros visuales calibrados al look de Gargantua (Interstellar). */
 export const GARGANTUA_VISUAL = {
   massSolar: 100,
@@ -16,13 +12,11 @@ export const GARGANTUA_VISUAL = {
 };
 
 /**
- * Aplica preset «Gargantua perfecto»: supermasivo, spin alto, lensing fuerte,
- * cámara casi de canto al disco y perfil visual dedicado.
+ * Aplica parámetros Gargantua sin cambiar de modo (lo invoca setMode('gargantua')).
  */
-export function applyGargantuaPreset(ctx) {
+export function applyGargantuaSettings(ctx) {
   const {
     universe,
-    modeManager,
     camera,
     controls,
     cameraLife,
@@ -34,8 +28,6 @@ export function applyGargantuaPreset(ctx) {
 
   const g = GARGANTUA_VISUAL;
 
-  modeManager?.setMode('black_hole');
-
   universe.setBlackHoleMass(g.massSolar);
   universe.spin = g.spin;
   universe.realismMode = g.realismMode;
@@ -45,7 +37,6 @@ export function applyGargantuaPreset(ctx) {
 
   if (lifeEngine) lifeEngine.enabled = g.lifeEnabled;
 
-  applyCameraForMode(camera, controls, getMode('black_hole'));
   camera.position.set(g.camera.x, g.camera.y, g.camera.z);
   controls.target.set(g.camera.tx, g.camera.ty, g.camera.tz);
   controls.update();
@@ -63,5 +54,9 @@ export function applyGargantuaPreset(ctx) {
   ctx.gwWaves?.setRealism?.(g.realismMode);
 
   ctx.guiSync?.();
-  showToast(t('toast.gargantuaPreset'));
+}
+
+/** Atajo: cambia al modo dedicado Gargantua. */
+export function applyGargantuaPreset(ctx) {
+  ctx.modeManager?.setMode('gargantua');
 }

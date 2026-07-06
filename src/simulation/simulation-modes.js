@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { t } from '../i18n/i18n.js';
 import { showToast } from '../ui/toast.js';
+import { applyGargantuaSettings } from '../physics/gargantua-preset.js';
 
 /**
  * Modos de simulación: controlan escena, cámara y HUD.
@@ -22,6 +23,26 @@ export const SIMULATION_MODES = {
       higgs: false,
       bhScale: 1,
       bhOpacity: 1,
+    },
+  },
+  gargantua: {
+    id: 'gargantua',
+    name: 'Gargantua (Interestelar)',
+    subtitle: 'Disco de canto · lensing fuerte · anillo de fotones · estilo película',
+    camera: { x: 0.5, y: 2.4, z: 98, tx: 0, ty: 0, tz: 0 },
+    maxDistance: 350,
+    minDistanceFactor: 0.28,
+    fogDensity: 0.0001,
+    autoTheory: 'singularity',
+    scene: {
+      exterior: true,
+      horizon: true,
+      interior: true,
+      multiverse: false,
+      higgs: false,
+      bhScale: 1,
+      bhOpacity: 1,
+      gargantua: true,
     },
   },
   multiverse: {
@@ -296,6 +317,10 @@ export class SimulationModeManager {
       this.ctx.galaxyCollisionSim?.reset?.();
       this.ctx.galaxyCollisionSim?.startCollision?.();
       galaxyCollisionScene?.reset?.();
+    }
+
+    if (mode.id === 'gargantua' || s.gargantua) {
+      applyGargantuaSettings(this.ctx);
     }
 
     bh.group.scale.setScalar(s.bhScale || 0.001);
