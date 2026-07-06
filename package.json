@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "audit": "node scripts/audit.mjs",
     "validate": "node scripts/validate-formulas.mjs",
-    "test": "npm run audit && npm run validate && npm run build",
+    "validate:gargantua": "node scripts/validate-gargantua.mjs",
+    "test": "npm run audit && npm run validate && npm run validate:gargantua && npm run build",
     "deploy": "vite build",
     "deploy:gh": "vite build && npx gh-pages -d dist"
   },

@@ -23,7 +23,7 @@ export const REALISM_PROFILES = {
     diskIntensity: 1.35,
     diskThinness: 0.38,
     diskVolumetric: 1.0,
-    diskInnerMul: 2.55,
+    diskInnerMul: 2.0,
     diskOuterMul: 4.6,
     diskTubeRatio: 0.48,
     bloomStrength: 1.0,

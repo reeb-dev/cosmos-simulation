@@ -81,6 +81,12 @@ const pred = Math.sqrt(1 - rsVis / r);
 const td = FORMULA_REGISTRY.time_dilation.compute({ ...ctx, probeR: r, horizonDilation: pred });
 check('time_dilation', Math.abs(td.value - pred) < 1e-9);
 
+const kerr0 = FORMULA_REGISTRY.kerr_isco.compute({ ...ctx, spin: 0 });
+check('kerr_isco spin=0', Math.abs(kerr0.display - 3) < 1e-6, `${kerr0.display} × rₛ`);
+
+const kerr06 = FORMULA_REGISTRY.kerr_isco.compute({ ...ctx, spin: 0.6 });
+check('kerr_isco spin=0.6', Math.abs(kerr06.display - 1.9145347094065754) < 1e-4, `${kerr06.display} × rₛ`);
+
 console.log('\n=== Formula Validation ===\n');
 for (const p of passed) {
   console.log(`✓ ${p.name}${p.detail ? ` — ${p.detail}` : ''}`);

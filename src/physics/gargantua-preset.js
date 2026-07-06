@@ -1,11 +1,11 @@
 /** Parámetros visuales calibrados al look de Gargantua (Interstellar). */
 export const GARGANTUA_VISUAL = {
   massSolar: 55,
-  spin: 0.99,
+  spin: 0.6,
   realismMode: 'gargantua',
   theoryId: 'singularity',
   camera: { x: 0.2, y: 0.65, z: 155, tx: 0, ty: 0, tz: 0 },
-  diskInnerMul: 2.55,
+  diskInnerMul: 2.0,
   diskOuterMul: 4.6,
   diskTubeRatio: 0.48,
   showLensing: true,

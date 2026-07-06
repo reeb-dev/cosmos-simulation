@@ -230,7 +230,7 @@ export const FORMULA_REGISTRY = {
   kerr_isco: {
     id: 'kerr_isco',
     name: 'ISCO Kerr (aprox. spin a)',
-    latex: 'r_{ISCO} \\approx r_{s}\\left(3 + Z_2 \\mp \\sqrt{(3-Z_1)(3+Z_1+2Z_2)}\\right)',
+    latex: 'r_{ISCO} = \\frac{r_s}{2}\\left(3 + Z_2 - \\sqrt{(3-Z_1)(3+Z_1+2Z_2)}\\right)',
     category: 'agujero_negro',
     enabled: true,
     compute: (ctx) => {
@@ -238,7 +238,7 @@ export const FORMULA_REGISTRY = {
       const rs = schwarzschildRadius(ctx.massKg);
       const Z1 = 1 + (1 - a * a) ** (1 / 3) * ((1 + a) ** (1 / 3) + (1 - a) ** (1 / 3));
       const Z2 = Math.sqrt(3 * a * a + Z1 * Z1);
-      const rIsco = rs * (3 + Z2 - Math.sqrt((3 - Z1) * (3 + Z1 + 2 * Z2)));
+      const rIsco = (rs / 2) * (3 + Z2 - Math.sqrt((3 - Z1) * (3 + Z1 + 2 * Z2)));
       return { value: rIsco, unit: 'm', display: rIsco / rs, displayUnit: '× rₛ' };
     },
   },
