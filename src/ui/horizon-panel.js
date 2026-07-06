@@ -106,6 +106,7 @@ export function updateTheoryPanel(simulator, simContext) {
     ${fictionBadge}
     <p class="theory-short">${theory.short}</p>
     <p class="theory-desc">${theory.description}</p>
+    <p class="theory-crossing"><strong>Qué verás al cruzar:</strong> ${theory.horizonVisual?.crossingDescription ?? 'El horizonte se disuelve en un interior teórico distinto según la teoría elegida.'}</p>
     ${theoryReadoutsHtml}
     <div class="probe-readouts">
       <div><strong>Inmersión:</strong> ${simulator.immersionLabel}</div>

@@ -14,6 +14,36 @@ function regimeLabel(regime) {
   return labels[regime] ?? regime;
 }
 
+/** Configuración visual pedagógica por teoría (membrana, interior, cruce, exterior). */
+function hv({
+  membraneColor,
+  membraneRipple = 1,
+  interiorScale = 2.5,
+  crossingFlash = 'default',
+  exteriorTint = [1, 1, 1],
+  probeTrailColor = 0x00ffcc,
+  crossingDescription,
+}) {
+  return {
+    membraneColor,
+    membraneRipple,
+    interiorScale,
+    crossingFlash,
+    exteriorTint,
+    probeTrailColor,
+    crossingDescription,
+  };
+}
+
+export const DEFAULT_HORIZON_VISUAL = hv({
+  membraneColor: 0xff6600,
+  crossingDescription: 'El horizonte se disuelve en un interior teórico distinto según la teoría elegida.',
+});
+
+export function getHorizonVisual(id) {
+  return HORIZON_THEORIES[id]?.horizonVisual ?? DEFAULT_HORIZON_VISUAL;
+}
+
 /**
  * Teorías sobre qué ocurre al cruzar el horizonte de sucesos.
  * Cada entrada define metadatos y parámetros visuales.
@@ -27,6 +57,16 @@ export const HORIZON_THEORIES = {
       'Según la Relatividad General de Einstein, toda la masa colapsa en un punto matemático de densidad y curvatura infinitas. Las leyes de la física dejan de tener sentido. Las fuerzas de marea divergen y cualquier objeto es destruido antes de llegar al centro.',
     status: 'Predicción clásica',
     color: 0xff2200,
+    horizonVisual: hv({
+      membraneColor: 0xff2200,
+      membraneRipple: 1.4,
+      interiorScale: 3.2,
+      crossingFlash: 'red_heat',
+      exteriorTint: [1.2, 0.25, 0.05],
+      probeTrailColor: 0xff4422,
+      crossingDescription:
+        'Un núcleo rojo infinito que pulsa mientras anillos y espinas colapsan violentamente hacia r = 0.',
+    }),
   },
   white_hole: {
     id: 'white_hole',
@@ -36,6 +76,16 @@ export const HORIZON_THEORIES = {
       'Solución matemática de las ecuaciones de Einstein donde el tiempo se invierte. Nada puede entrar, solo salir. Podría ser el "otro lado" de un agujero negro en un diagrama de Penrose extendido, aunque ningún agujero blanco se ha observado.',
     status: 'Solución matemática',
     color: 0xffffff,
+    horizonVisual: hv({
+      membraneColor: 0xffffff,
+      membraneRipple: 0.8,
+      interiorScale: 2.8,
+      crossingFlash: 'white_burst',
+      exteriorTint: [1.4, 1.4, 1.5],
+      probeTrailColor: 0xccddff,
+      crossingDescription:
+        'Un estallido blanco cegador: chorros de materia y partículas que solo salen, nunca entran.',
+    }),
   },
   wormhole: {
     id: 'wormhole',
@@ -45,6 +95,16 @@ export const HORIZON_THEORIES = {
       'Un "agujero de gusano" podría conectar el interior del agujero negro con otra región del universo o un universo paralelo. Requiere materia exótica con energía negativa para mantenerse estable; sin ella, el puente colapsa en microsegundos.',
     status: 'Hipotético',
     color: 0x44aaff,
+    horizonVisual: hv({
+      membraneColor: 0x44aaff,
+      membraneRipple: 1.1,
+      interiorScale: 2.4,
+      crossingFlash: 'wormhole_blue',
+      exteriorTint: [0.5, 0.7, 1.3],
+      probeTrailColor: 0x66bbff,
+      crossingDescription:
+        'Un túnel azul wireframe se abre hacia un cuello de gusano y un cielo estrellado al otro lado.',
+    }),
   },
   baby_universe: {
     id: 'baby_universe',
@@ -54,6 +114,15 @@ export const HORIZON_THEORIES = {
       'Propuesta de Lee Smolin y otros: el interior del agujero negro podría "rebotar" en un Big Bang local, creando un universo hijo con constantes físicas ligeramente diferentes. Nuestro universo podría ser el hijo de un agujero negro anterior.',
     status: 'Especulativo',
     color: 0xaa66ff,
+    horizonVisual: hv({
+      membraneColor: 0xaa66ff,
+      interiorScale: 2.6,
+      crossingFlash: 'baby_expand',
+      exteriorTint: [0.9, 0.5, 1.3],
+      probeTrailColor: 0xcc99ff,
+      crossingDescription:
+        'Una burbuja púrpura que se infla con mini-estrellas: un Big Bang local naciendo dentro del agujero.',
+    }),
   },
   firewall: {
     id: 'firewall',
@@ -63,6 +132,16 @@ export const HORIZON_THEORIES = {
       'Para resolver la paradoja de la información (¿qué pasa con los datos que caen?), AMPS propuso que el horizonte no es un paso tranquilo: es una pared de partículas de altísima energía que incinera cualquier cosa que lo cruce, violando el principio de equivalencia.',
     status: 'Debate activo',
     color: 0xff8800,
+    horizonVisual: hv({
+      membraneColor: 0xff8800,
+      membraneRipple: 1.6,
+      interiorScale: 2.5,
+      crossingFlash: 'red_heat',
+      exteriorTint: [1.4, 0.4, 0.05],
+      probeTrailColor: 0xffaa00,
+      crossingDescription:
+        'Una pared de fuego naranja-incandescente: ondas de calor extremo que destruyen todo al cruzar.',
+    }),
   },
   holographic: {
     id: 'holographic',
@@ -72,6 +151,16 @@ export const HORIZON_THEORIES = {
       'La información de todo lo que cae al agujero negro queda codificada en el horizonte de sucesos como un holograma 2D. El interior sería una descripción equivalente pero no hay "otro lado" físico: la información persiste en la superficie y eventualmente se libera como radiación de Hawking.',
     status: 'Marco teórico (AdS/CFT)',
     color: 0x00ffaa,
+    horizonVisual: hv({
+      membraneColor: 0x00ffaa,
+      membraneRipple: 0.9,
+      interiorScale: 2.7,
+      crossingFlash: 'blue_scan',
+      exteriorTint: [0.3, 1.1, 0.85],
+      probeTrailColor: 0x00ffcc,
+      crossingDescription:
+        'La membrana se convierte en scanlines cian: el interior es una malla de bits codificados en 2D.',
+    }),
   },
   quantum_foam: {
     id: 'quantum_foam',
@@ -81,6 +170,16 @@ export const HORIZON_THEORIES = {
       'La gravedad cuántica (loops, cuerdas, etc.) sugiere que la singularidad no existe: el espaciotiempo se vuelve "espumoso" a la escala de Planck (~10⁻³⁵ m). El colapso podría detenerse y rebotar, o conectarse a otra región sin singularidad.',
     status: 'Investigación activa',
     color: 0x88ff44,
+    horizonVisual: hv({
+      membraneColor: 0x88ff44,
+      membraneRipple: 1.3,
+      interiorScale: 2.8,
+      crossingFlash: 'green_foam',
+      exteriorTint: [0.6, 1.2, 0.4],
+      probeTrailColor: 0x99ff55,
+      crossingDescription:
+        'Espuma de burbujas poliédricas verdes que vibran: el espaciotiempo deja de ser continuo.',
+    }),
   },
   friedmann_echo: {
     id: 'friedmann_echo',
@@ -91,6 +190,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xff66cc,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xff66cc,
+      interiorScale: 2.4,
+      crossingFlash: 'friedmann_shells',
+      exteriorTint: [1.2, 0.4, 0.9],
+      probeTrailColor: 0xff88dd,
+      crossingDescription:
+        'Capas esféricas rosas que se expanden como ecos del factor de escala a(t) del cosmos exterior.',
+    }),
   },
   hybrid_regime: {
     id: 'hybrid_regime',
@@ -101,6 +209,16 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0x66ccff,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0x66ccff,
+      membraneRipple: 1.2,
+      interiorScale: 1.8,
+      crossingFlash: 'tri_regime',
+      exteriorTint: [0.5, 0.9, 1.3],
+      probeTrailColor: 0x66ddff,
+      crossingDescription:
+        'Tres esferas superpuestas (Schwarzschild, N-cuerpos, Friedmann) compitiendo en el mismo horizonte.',
+    }),
   },
   temporal_fracture: {
     id: 'temporal_fracture',
@@ -111,6 +229,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xffcc00,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xffcc00,
+      interiorScale: 2.3,
+      crossingFlash: 'gold_fracture',
+      exteriorTint: [1.2, 1.0, 0.3],
+      probeTrailColor: 0xffdd44,
+      crossingDescription:
+        'Una grieta dorada divide tiempo congelado (izquierda) de un cosmos que envejeció infinitamente (derecha).',
+    }),
   },
   information_loop: {
     id: 'information_loop',
@@ -121,6 +248,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0x99ff66,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0x99ff66,
+      interiorScale: 2.5,
+      crossingFlash: 'loop_spin',
+      exteriorTint: [0.7, 1.2, 0.4],
+      probeTrailColor: 0xbbff77,
+      crossingDescription:
+        'Un anillo verde de bits que circula sin destruirse: la información rebota entre superficie y cosmos.',
+    }),
   },
   planck_threshold: {
     id: 'planck_threshold',
@@ -131,6 +267,16 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xcc88ff,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xcc88ff,
+      membraneRipple: 1.5,
+      interiorScale: 3.0,
+      crossingFlash: 'planck_lattice',
+      exteriorTint: [0.9, 0.6, 1.3],
+      probeTrailColor: 0xddaaff,
+      crossingDescription:
+        'Red de burbujas de Planck violetas sobre una rejilla: la singularidad se disuelve en fluctuaciones.',
+    }),
     physicsBasis:
       'rₛ = 2GM/c² (schwarzschild_rs), longitud de Planck l_P = √(ℏG/c³), ratio rₛ/l_P desde masa simulada, dilatación √(1−rₛ/r) al acercarse.',
     computeReadouts(simContext) {
@@ -160,6 +306,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xff5599,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xff5599,
+      interiorScale: 2.4,
+      crossingFlash: 'resonance_wave',
+      exteriorTint: [1.2, 0.4, 0.7],
+      probeTrailColor: 0xff88bb,
+      crossingDescription:
+        'Anillos armónicos rosas que pulsan al ritmo de H(z): resonancia con la frecuencia de Hubble.',
+    }),
     physicsBasis:
       'Friedmann H(a) y H(z) del solver cosmológico, factor de escala a(t), redshift z, comparación H simulado vs H₀√(Ωₘ/a³ + ΩΛ).',
     computeReadouts(simContext) {
@@ -192,6 +347,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xff7744,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xff7744,
+      interiorScale: 2.2,
+      crossingFlash: 'orange_invert',
+      exteriorTint: [1.3, 0.5, 0.15],
+      probeTrailColor: 0xff8844,
+      crossingDescription:
+        'Un disco de acreción invertido: materia que cae desde fuera reaparece expulsándose hacia el centro.',
+    }),
     physicsBasis:
       'Límite de Eddington (ṁ_Edd ∝ M), flujo Bondi ∝ ρ/(c_s³), masa M y rₛ del agujero simulado, fuerza de marea a r de la sonda.',
     computeReadouts(simContext) {
@@ -229,6 +393,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xeedd66,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xeedd66,
+      interiorScale: 2.6,
+      crossingFlash: 'photon_ring',
+      exteriorTint: [1.1, 1.0, 0.4],
+      probeTrailColor: 0xffee88,
+      crossingDescription:
+        'La esfera de fotones a 1,5 rₛ: luz amarilla atrapada en órbitas eternas sin escapar ni caer.',
+    }),
     physicsBasis:
       'Esfera de fotones r = 1,5 rₛ (photon_sphere), ISCO a 3 rₛ (isco), geodésicas del simulador, dilatación en r de la cámara/sonda.',
     computeReadouts(simContext) {
@@ -261,6 +434,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0x66ffcc,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0x66ffcc,
+      interiorScale: 2.5,
+      crossingFlash: 'entropy_noise',
+      exteriorTint: [0.4, 1.1, 0.9],
+      probeTrailColor: 0x88ffdd,
+      crossingDescription:
+        'Ruido térmico verde-azul: el microestado de máxima entropía de Bekenstein-Hawking en equilibrio.',
+    }),
     physicsBasis:
       'Entropía Bekenstein-Hawking (bekenstein_entropy), temperatura de Hawking T_H, área del horizonte A = 4πrₛ², masa M simulada.',
     computeReadouts(simContext) {
@@ -291,6 +473,15 @@ export const HORIZON_THEORIES = {
     status: 'Especulativa ★',
     color: 0x66aaff,
     speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0x66aaff,
+      interiorScale: 2.4,
+      crossingFlash: 'island_pulse',
+      exteriorTint: [0.5, 0.8, 1.3],
+      probeTrailColor: 0x88ccff,
+      crossingDescription:
+        'Islas cuánticas azules orbitando el horizonte: la información reaparece fuera del interior clásico.',
+    }),
     physicsBasis:
       'Entropía Bekenstein-Hawking S = k_B c³A/(4Gℏ), temperatura T_H, área A = 4πrₛ², Page time τ_Page ∝ M³, comparación con radiación de Hawking del agujero simulado.',
     computeReadouts(simContext) {
@@ -324,6 +515,15 @@ export const HORIZON_THEORIES = {
     status: 'Especulativa ★',
     color: 0x4488ff,
     speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0x4488ff,
+      interiorScale: 2.5,
+      crossingFlash: 'bridge_er',
+      exteriorTint: [0.4, 0.7, 1.3],
+      probeTrailColor: 0x66aaff,
+      crossingDescription:
+        'Puentes ER curvos conectando pares entrelazados cian y magenta: el entrelazamiento es geometría.',
+    }),
     physicsBasis:
       'Longitud de Planck l_P, ratio rₛ/l_P, entropía S y bits informacionales, dilatación √(1−rₛ/r) en la sonda, geodésicas del simulador.',
     computeReadouts(simContext) {
@@ -355,6 +555,15 @@ export const HORIZON_THEORIES = {
     status: 'Especulativa ★',
     color: 0xffaa44,
     speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0xffaa44,
+      interiorScale: 2.6,
+      crossingFlash: 'orange_invert',
+      exteriorTint: [1.2, 0.7, 0.2],
+      probeTrailColor: 0xffcc66,
+      crossingDescription:
+        'Un núcleo naranja denso con ondas de rebote: el colapso se detiene en densidad de Planck.',
+    }),
     physicsBasis:
       'Densidad de Planck ρ_P = c⁵/(ℏG²), radio rₛ, masa M, ratio M/rₛ³ vs ρ_P, dilatación temporal en la sonda.',
     computeReadouts(simContext) {
@@ -385,6 +594,16 @@ export const HORIZON_THEORIES = {
     status: 'Especulativa ★',
     color: 0x88ffaa,
     speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0x88ffaa,
+      membraneRipple: 1.3,
+      interiorScale: 3.0,
+      crossingFlash: 'fuzz_strings',
+      exteriorTint: [0.5, 1.2, 0.7],
+      probeTrailColor: 0x99ffbb,
+      crossingDescription:
+        'Nudos de cuerdas verdes en superposición: no hay interior vacío, solo micro-estados borrosos.',
+    }),
     physicsBasis:
       'Entropía S = k_B c³A/(4Gℏ), número de micro-estados N ~ e^(S/k_B), área A = 4πrₛ², temperatura T_H.',
     computeReadouts(simContext) {
@@ -416,6 +635,15 @@ export const HORIZON_THEORIES = {
     status: 'Especulativa ★',
     color: 0xcc66ff,
     speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0xcc66ff,
+      interiorScale: 2.3,
+      crossingFlash: 'mirror_flip',
+      exteriorTint: [1.0, 0.5, 1.3],
+      probeTrailColor: 0xdd88ff,
+      crossingDescription:
+        'Un espejo púrpura invierte materia y antimateria: el cosmos reflejado corre el tiempo al revés.',
+    }),
     physicsBasis:
       'Inversión temporal vinculada a dilatación √(1−rₛ/r), factor de escala a(t) y redshift z, H(z) del solver Friedmann, régimen cosmológico simulado.',
     computeReadouts(simContext) {
@@ -446,6 +674,15 @@ export const HORIZON_THEORIES = {
     status: 'Marco teórico (AdS/CFT)',
     color: 0x00ddbb,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0x00ddbb,
+      interiorScale: 2.5,
+      crossingFlash: 'ads_bulk',
+      exteriorTint: [0.3, 1.1, 0.85],
+      probeTrailColor: 0x44ffcc,
+      crossingDescription:
+        'Bulk AdS ondulante con frontera CFT: el volumen interior es el dual holográfico de la superficie.',
+    }),
     physicsBasis:
       'Entropía S = k_B c³A/(4Gℏ) como conteo CFT, rₛ y área del horizonte, H(a) y a(t) modulan curvatura AdS efectiva, dilatación en la sonda.',
     computeReadouts(simContext) {
@@ -478,6 +715,15 @@ export const HORIZON_THEORIES = {
     status: 'Ficción científica ★★',
     color: 0xffcc88,
     fiction: true,
+    horizonVisual: hv({
+      membraneColor: 0xffcc88,
+      interiorScale: 2.8,
+      crossingFlash: 'babel_text',
+      exteriorTint: [1.1, 0.85, 0.5],
+      probeTrailColor: 0xffddaa,
+      crossingDescription:
+        'Estantes infinitos de libros y partículas de texto ámbar: cada bit del horizonte abre un volumen nuevo.',
+    }),
     physicsBasis:
       'Metáfora sobre entropía S y bits informacionales del horizonte simulado; usa rₛ, T_H y Page time como "índice de catalogación".',
     computeReadouts(simContext) {
@@ -508,6 +754,15 @@ export const HORIZON_THEORIES = {
     status: 'Ficción científica ★★',
     color: 0xff66ff,
     fiction: true,
+    horizonVisual: hv({
+      membraneColor: 0xff66ff,
+      interiorScale: 2.4,
+      crossingFlash: 'portal_spiral',
+      exteriorTint: [1.2, 0.4, 1.3],
+      probeTrailColor: 0xff88ff,
+      crossingDescription:
+        'Un portal espiral magenta hacia un universo gemelo en expansión con Ω invertidos.',
+    }),
     physicsBasis:
       'Juguete cosmológico: H₀, Ωₘ, ΩΛ del simulador generan un universo gemelo con Ω invertidos; usa a(t), z y q(a) como parámetros de la puerta.',
     computeReadouts(simContext) {
@@ -542,6 +797,15 @@ export const HORIZON_THEORIES = {
     status: 'Conclusión del motor híbrido',
     color: 0xaa77ff,
     original: true,
+    horizonVisual: hv({
+      membraneColor: 0xaa77ff,
+      interiorScale: 2.0,
+      crossingFlash: 'multiverse_fork',
+      exteriorTint: [0.8, 0.5, 1.3],
+      probeTrailColor: 0xcc99ff,
+      crossingDescription:
+        'Tres ramas cosmológicas bifurcándose según Ωₘ/ΩΛ: materia, equilibrio o energía oscura dominante.',
+    }),
     physicsBasis:
       'Ωₘ, ΩΛ del solver Friedmann, parámetro q(a), classifyRegime en umbrales 100·rₛ y 80 u.vis, H(z) y a(t) actuales.',
     computeReadouts(simContext) {

@@ -1266,16 +1266,24 @@ export function createInteriorWorlds(rs) {
     worlds[id] = world;
   }
 
-  function setTheory(id) {
+  let activeScale = 2.5;
+
+  function setTheory(id, visual) {
+    const scale = visual?.interiorScale ?? 2.5;
+    activeScale = scale;
     for (const [key, world] of Object.entries(worlds)) {
       world.visible = key === id;
+      world.scale.setScalar(scale);
     }
+    group.scale.setScalar(1);
   }
 
   function setOpacity(alpha) {
     group.visible = alpha > 0.01;
+    const immersionBoost = 0.6 + alpha * 0.4;
     for (const world of Object.values(worlds)) {
       if (!world.visible) continue;
+      world.scale.setScalar(activeScale * immersionBoost);
       world.traverse((obj) => {
         if (obj.material) {
           if (obj.userData.baseOpacity === undefined) {
@@ -1298,7 +1306,7 @@ export function createInteriorWorlds(rs) {
       group.add(world);
       worlds[id] = world;
     }
-    if (activeTheory) setTheory(activeTheory);
+    if (activeTheory) setTheory(activeTheory, HORIZON_THEORIES[activeTheory]?.horizonVisual);
   }
 
   function animate(time) {
@@ -1312,6 +1320,14 @@ export function createInteriorWorlds(rs) {
   return { group, worlds, setTheory, setOpacity, animate, updateRs };
 }
 
+export function applyMembraneVisual(mat, visual, theoryIndex = 0) {
+  if (!mat?.uniforms) return;
+  const c = new THREE.Color(visual.membraneColor ?? 0xff6600);
+  mat.uniforms.membraneColor.value.set(c.r, c.g, c.b);
+  mat.uniforms.membraneRippleScale.value = visual.membraneRipple ?? 1;
+  mat.uniforms.theoryIndex.value = theoryIndex;
+}
+
 export function createHorizonMembrane(rs) {
   const geo = new THREE.SphereGeometry(rs, 64, 64);
   const mat = new THREE.ShaderMaterial({
@@ -1319,6 +1335,9 @@ export function createHorizonMembrane(rs) {
       time: { value: 0 },
       ripple: { value: 0 },
       rs: { value: rs },
+      membraneColor: { value: new THREE.Vector3(1, 0.4, 0) },
+      membraneRippleScale: { value: 1 },
+      theoryIndex: { value: 0 },
     },
     transparent: true,
     side: THREE.FrontSide,
@@ -1327,23 +1346,30 @@ export function createHorizonMembrane(rs) {
       uniform float time;
       uniform float ripple;
       uniform float rs;
+      uniform float membraneRippleScale;
+      uniform float theoryIndex;
       varying vec3 vNormal;
       varying float vDist;
       void main() {
         vNormal = normal;
-        float wave = sin(position.y * 30.0 + time * 4.0) * ripple * rs * 0.15;
+        float freq = 30.0 + theoryIndex * 1.5;
+        float wave = sin(position.y * freq + time * 4.0) * ripple * rs * 0.15 * membraneRippleScale;
+        wave += sin(position.x * freq * 0.7 + time * 3.0) * ripple * rs * 0.05 * membraneRippleScale;
         vec3 pos = position + normal * wave;
         vDist = length(position) / rs;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
     `,
     fragmentShader: `
+      uniform vec3 membraneColor;
       varying vec3 vNormal;
       varying float vDist;
       void main() {
         float fresnel = pow(1.0 - abs(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0))), 2.0);
-        vec3 col = mix(vec3(0.8, 0.2, 0.0), vec3(1.0, 0.6, 0.1), fresnel);
-        float alpha = fresnel * 0.6 + 0.1;
+        vec3 hot = membraneColor;
+        vec3 rim = mix(hot, vec3(1.0), 0.35);
+        vec3 col = mix(hot * 0.6, rim, fresnel);
+        float alpha = fresnel * 0.65 + 0.12;
         gl_FragColor = vec4(col, alpha);
       }
     `,
@@ -1380,5 +1406,10 @@ export function createProbe() {
     trail.visible = false;
   }
 
-  return { mesh, trail, update, reset };
+  function setTrailColor(hex) {
+    mat.color.setHex(hex);
+    trailMat.color.setHex(hex);
+  }
+
+  return { mesh, trail, update, reset, setTrailColor };
 }

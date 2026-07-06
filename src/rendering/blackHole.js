@@ -28,6 +28,7 @@ export function createBlackHole(rsVis, spin = 0) {
       outerRadius: { value: diskOuter },
       time: { value: 0 },
       spin: { value: spin },
+      exteriorTint: { value: new THREE.Vector3(1, 1, 1) },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -43,6 +44,7 @@ export function createBlackHole(rsVis, spin = 0) {
       uniform float outerRadius;
       uniform float time;
       uniform float spin;
+      uniform vec3 exteriorTint;
       varying vec2 vUv;
       varying float vRadius;
 
@@ -62,6 +64,7 @@ export function createBlackHole(rsVis, spin = 0) {
         color = mix(color, cool, blend * blend);
 
         float alpha = smoothstep(outerRadius, innerRadius, r) * (0.6 + 0.4 * spiral) * t * doppler;
+        color *= exteriorTint;
         gl_FragColor = vec4(color, alpha);
       }
     `,

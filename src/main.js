@@ -10,7 +10,10 @@ import {
   createHorizonMembrane,
   createInteriorWorlds,
   createProbe,
+  applyMembraneVisual,
 } from './rendering/interior-worlds.js';
+import { createHorizonTransition } from './rendering/horizon-transition.js';
+import { getHorizonVisual, THEORY_IDS, PROBE_STATE } from './simulation/horizon-theories.js';
 import { createLensingPass } from './rendering/lensing-pass.js';
 import { createParticleSystem } from './rendering/particles.js';
 import { createScene } from './rendering/scene.js';
@@ -39,7 +42,21 @@ const { mesh: horizonMembrane, mat: horizonMat } = createHorizonMembrane(engine.
 scene.add(horizonMembrane);
 
 const interior = createInteriorWorlds(engine.universe.rsVis);
-interior.setTheory(horizonSim.theoryId);
+const horizonTransition = createHorizonTransition(camera);
+
+function applyTheoryVisual(id) {
+  const visual = getHorizonVisual(id);
+  const theoryIndex = THEORY_IDS.indexOf(id);
+  interior.setTheory(id, visual);
+  applyMembraneVisual(horizonMat, visual, theoryIndex);
+  const tint = visual.exteriorTint ?? [1, 1, 1];
+  bh.diskMat.uniforms.exteriorTint.value.set(tint[0], tint[1], tint[2]);
+  probe.setTrailColor(visual.probeTrailColor ?? 0x00ffcc);
+  bh.photonSphere.material.color.setHex(visual.membraneColor ?? 0xff6600);
+  bh.photonSphere.material.opacity = 0.12 + (theoryIndex % 5) * 0.01;
+}
+
+applyTheoryVisual(horizonSim.theoryId);
 scene.add(interior.group);
 
 const probe = createProbe();
@@ -70,6 +87,7 @@ function onRsChange() {
   horizonMembrane.geometry = new THREE.SphereGeometry(rs, 64, 64);
   horizonMat.uniforms.rs.value = rs;
   interior.updateRs(rs, horizonSim.theoryId);
+  applyTheoryVisual(horizonSim.theoryId);
   guiHandles?.syncFromUniverse?.();
 }
 
@@ -86,7 +104,7 @@ const appCtx = {
   cameraLife,
   customFormulas,
   onRsChange,
-  onTheoryChange: (id) => interior.setTheory(id),
+  onTheoryChange: (id) => applyTheoryVisual(id),
   onExperiment: (id, result) => updateExperimentModal(result),
   onVisualUpdate: onRsChange,
   clearCustomFormulas: () => {
@@ -106,6 +124,8 @@ cosmicTour.showWelcomeIfNeeded();
 
 let lastTime = performance.now();
 let animTime = 0;
+let prevProbeState = PROBE_STATE.IDLE;
+let prevCameraInside = false;
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -117,7 +137,7 @@ function animate(now) {
   const life = lifeEngine.step(rawDt, engine, {
     onMassGrow: () => onRsChange(),
     onTheoryDrift: (id) => {
-      interior.setTheory(id);
+      applyTheoryVisual(id);
       guiHandles.syncFromUniverse();
     },
     onStarBorn: () => starfield.birthStar(),
@@ -138,8 +158,24 @@ function animate(now) {
 
   const interiorOpacity = horizonSim.interiorOpacity;
   const cameraImmersion = horizonSim.cameraCrossingProgress;
+
+  if (
+    horizonSim.probeState === PROBE_STATE.CROSSING &&
+    prevProbeState === PROBE_STATE.APPROACHING
+  ) {
+    const visual = getHorizonVisual(horizonSim.theoryId);
+    horizonTransition.flash(visual.crossingFlash, visual.membraneColor);
+  }
+  if (horizonSim.cameraInside && !prevCameraInside) {
+    const visual = getHorizonVisual(horizonSim.theoryId);
+    horizonTransition.flash(visual.crossingFlash, visual.membraneColor);
+  }
+  prevProbeState = horizonSim.probeState;
+  prevCameraInside = horizonSim.cameraInside;
+
   interior.setOpacity(interiorOpacity);
   interior.animate(animTime);
+  horizonTransition.update(rawDt, animTime);
 
   // Ocultar el exterior solo cuando la cámara cruza el horizonte (no cuando solo la sonda cruza)
   exteriorGroup.visible = cameraImmersion < 0.95;
@@ -151,7 +187,10 @@ function animate(now) {
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
   horizonMat.uniforms.time.value = animTime;
-  horizonMat.uniforms.ripple.value = horizonSim.horizonRipple + life.pulse * 0.08;
+  const visual = getHorizonVisual(horizonSim.theoryId);
+  const theoryRipple = (visual.membraneRipple ?? 1) * 0.15;
+  horizonMat.uniforms.ripple.value =
+    horizonSim.horizonRipple + theoryRipple + life.pulse * 0.08;
 
   probe.update(horizonSim.getProbePosition(), horizonSim.probeState !== 'idle');
   particles.update(engine.universe.showGeodesics ? engine.getParticleStates() : []);
