@@ -87,6 +87,46 @@ check('kerr_isco spin=0', Math.abs(kerr0.display - 3) < 1e-6, `${kerr0.display} 
 const kerr06 = FORMULA_REGISTRY.kerr_isco.compute({ ...ctx, spin: 0.6 });
 check('kerr_isco spin=0.6', Math.abs(kerr06.display - 1.9145347094065754) < 1e-4, `${kerr06.display} × rₛ`);
 
+const rInner = 3 * rs;
+const Tref = ((3 * G * M10 * 1e17) / (8 * Math.PI * 5.670374419e-8 * rInner ** 3)) ** 0.25;
+const diskT = FORMULA_REGISTRY.disk_temperature.compute({ ...ctx, orbitR: rInner, visScale: 1, mdot: 1e17 });
+check('disk_temperature inner disk', Math.abs(diskT.value - Tref) / Tref < 1e-6, `${diskT.value} K`);
+
+const muF = FORMULA_REGISTRY.reduced_mass.compute({ ...ctx, m1Solar: 36, m2Solar: 29 });
+const muRef = (36 * 29 * M_SUN) / (36 + 29);
+check('reduced_mass', Math.abs(muF.value - muRef) / muRef < 1e-9);
+
+const McF = FORMULA_REGISTRY.chirp_mass.compute({ ...ctx, m1Solar: 36, m2Solar: 29 });
+const m1 = 36 * M_SUN;
+const m2 = 29 * M_SUN;
+const McRef = (m1 * m2) ** (3 / 5) / (m1 + m2) ** (1 / 5);
+check('chirp_mass GW150914', Math.abs(McF.value - McRef) / McRef < 1e-9);
+
+const sepM = 80 * (u.visScale ?? 1e10);
+const m1b = 30 * M_SUN;
+const m2b = 20 * M_SUN;
+const Mb = m1b + m2b;
+const mub = (m1b * m2b) / Mb;
+const dEdtRef = ((32 / 5) * G ** 4 * mub ** 2 * Mb ** 3) / (C ** 5 * sepM ** 5);
+const dEdtF = FORMULA_REGISTRY.gw_energy_loss.compute({ ...ctx, m1Solar: 30, m2Solar: 20, separationVis: 80 });
+check('gw_energy_loss Peters', Math.abs(dEdtF.value - dEdtRef) / dEdtRef < 1e-6);
+
+const vOrb = Math.sqrt((G * Mb) / sepM);
+const hRef = ((4 * G * mub) / (C ** 2 * sepM)) * (vOrb / C) ** 2;
+const hF = FORMULA_REGISTRY.gw_strain_inspiral.compute({ ...ctx, m1Solar: 30, m2Solar: 20, separationVis: 80 });
+check('gw_strain_inspiral', Math.abs(hF.value - hRef) / hRef < 1e-6, `h=${hF.value}`);
+
+const omega = Math.sqrt((G * Mb) / sepM ** 3);
+const fGwRef = (omega / (2 * Math.PI)) * 2;
+const fGwF = FORMULA_REGISTRY.gw_frequency.compute({ ...ctx, m1Solar: 30, m2Solar: 20, separationVis: 80 });
+check('gw_frequency', Math.abs(fGwF.value - fGwRef) / fGwRef < 1e-6);
+
+const fQnm = FORMULA_REGISTRY.qnm_frequency.compute({ ...ctx, mergedMassSolar: 50, mergedSpin: 0.67 });
+check('qnm_frequency', fQnm.value > 10 && fQnm.value < 1e5, `${fQnm.value} Hz`);
+
+const formulaCount = Object.values(FORMULA_REGISTRY).filter((f) => f.enabled).length;
+check('formula registry count', formulaCount >= 28, `${formulaCount} fórmulas`);
+
 console.log('\n=== Formula Validation ===\n');
 for (const p of passed) {
   console.log(`✓ ${p.name}${p.detail ? ` — ${p.detail}` : ''}`);

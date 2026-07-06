@@ -10,7 +10,6 @@ const MODE_ICONS = {
   theory_picker: '🔭',
   string_theory: '〰️',
   binary_merger: '💥',
-  galaxy_collision: '🌌',
   deep_field: '🌠',
 };
 

@@ -1,10 +1,11 @@
 import { evaluateAllFormulas, buildFormulaContext, FORMULA_REGISTRY } from '../physics/formula-registry.js';
 
 export class TheoryLab {
-  constructor(universe, horizonSim, engine) {
+  constructor(universe, horizonSim, engine, binarySim = null) {
     this.universe = universe;
     this.horizonSim = horizonSim;
     this.engine = engine;
+    this.binarySim = binarySim;
     this.customFormulas = [];
     this.experiments = [];
     this.lastResults = [];
@@ -16,7 +17,7 @@ export class TheoryLab {
   }
 
   step() {
-    const ctx = buildFormulaContext(this.universe, this.horizonSim, this.engine);
+    const ctx = buildFormulaContext(this.universe, this.horizonSim, this.engine, this.binarySim);
     this.lastResults = evaluateAllFormulas(ctx, this.customFormulas);
     return this.lastResults;
   }
@@ -24,7 +25,7 @@ export class TheoryLab {
   runExperiment(id) {
     const exp = EXPERIMENTS[id];
     if (!exp) return null;
-    const ctx = buildFormulaContext(this.universe, this.horizonSim, this.engine);
+    const ctx = buildFormulaContext(this.universe, this.horizonSim, this.engine, this.binarySim);
     return exp.run(ctx, this.universe, this.horizonSim);
   }
 

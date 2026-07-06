@@ -15,12 +15,15 @@ function fmtSim(v) {
 
 /** Mapeo nombre de fórmula → id de metadatos */
 const FORMULA_META_MAP = {
-  'Parámetro de Hubble': 'friedmann_h',
-  'Radio de Schwarzschild': 'schwarzschild_rs',
-  'Dilatación temporal': 'time_dilation',
-  'Temperatura Hawking': 'hawking_temperature',
-  'Tiempo evaporación Hawking': 'hawking_lifetime',
-  'Strain GW': 'gw_strain_inspiral',
+  'Parámetro de Hubble H(a)': 'friedmann_h',
+  'Horizonte de Schwarzschild': 'schwarzschild_rs',
+  'Dilatación temporal (GR)': 'time_dilation',
+  'Temperatura de Hawking': 'hawking_temperature',
+  'Vida del agujero negro (Hawking)': 'hawking_lifetime',
+  'Strain GW (inspiral)': 'gw_strain_inspiral',
+  'Pérdida energía orbital (Peters)': 'gw_energy_loss',
+  'Masa reducida (binario)': 'reduced_mass',
+  'Distancia comóvil': 'comoving_distance',
 };
 
 export function updateLabPanel(lab) {

@@ -26,6 +26,7 @@ import { createDeepField } from './rendering/deep-field.js';
 import { createMasterGui } from './ui/master-controls.js';
 import { updateHud, updateTheoryPanel, updateModePanel } from './ui/horizon-panel.js';
 import { createCameraLife, updateLifePanel } from './ui/life-panel.js';
+import { adjustZoom } from './ui/camera-zoom.js';
 import { updateLabPanel, updateExperimentModal } from './ui/lab-panel.js';
 import { createGuidePanel } from './ui/guide-panel.js';
 import { createModeExplainer } from './ui/mode-explainer.js';
@@ -40,8 +41,6 @@ import { createStringScene } from './rendering/string-scene.js';
 import { createBinaryBlackHolesScene } from './rendering/binary-black-holes.js';
 import { createGravitationalWaves } from './rendering/gravitational-waves.js';
 import { BinaryBlackHoleSim } from './simulation/binary-black-holes.js';
-import { GalaxyCollisionSim } from './simulation/galaxy-collision.js';
-import { createGalaxyCollisionScene } from './rendering/galaxy-collision-scene.js';
 import { SimulationModeManager } from './simulation/simulation-modes.js';
 import { initPanelCollapse } from './ui/panel-collapse.js';
 import { SimulationSeed, parseUrlState, applyUrlState, collectUrlState, syncUrlState } from './research/simulation-seed.js';
@@ -67,7 +66,8 @@ const engine = new SimulationEngine();
 engine.universe.simulationSeed = simulationSeed;
 const horizonSim = new HorizonSimulator(engine.universe.rsVis);
 const lifeEngine = new LifeEngine(engine.universe, horizonSim);
-const theoryLab = new TheoryLab(engine.universe, horizonSim, engine);
+const binarySim = new BinaryBlackHoleSim();
+const theoryLab = new TheoryLab(engine.universe, horizonSim, engine, binarySim);
 const customFormulas = loadCustomFormulas();
 theoryLab.setCustomFormulas(customFormulas);
 
@@ -130,12 +130,9 @@ deepField.sdssGroup.visible = false;
 const multiverseWorld = createMultiverseWorld(engine.universe.cosmology);
 const higgsScene = createHiggsScene();
 const stringScene = createStringScene();
-const binarySim = new BinaryBlackHoleSim();
 const binaryScene = createBinaryBlackHolesScene();
 const gwWaves = createGravitationalWaves();
-const galaxyCollisionSim = new GalaxyCollisionSim();
-const galaxyCollisionScene = createGalaxyCollisionScene();
-scene.add(multiverseWorld.group, higgsScene.group, stringScene.group, binaryScene.group, gwWaves.group, galaxyCollisionScene.group);
+scene.add(multiverseWorld.group, higgsScene.group, stringScene.group, binaryScene.group, gwWaves.group);
 
 // Guardar opacidades base del BH para modos
 bh.group.traverse((obj) => {
@@ -153,10 +150,12 @@ const bhWorldPos = new THREE.Vector3(0, 0, 0);
 
 function getDiskCfg() {
   const profile = getRealismProfile(engine.universe.realismMode ?? 'realistic');
+  const mode = modeManager?.currentMode ?? 'black_hole';
   return {
     innerMul: profile.diskInnerMul ?? 2.55,
     outerMul: profile.diskOuterMul ?? 8.5,
     tubeRatio: profile.diskTubeRatio ?? 0.55,
+    volumetric: profile.diskVolumetric ?? (mode === 'gargantua' ? 1.0 : 0.0),
   };
 }
 
@@ -204,9 +203,6 @@ const appCtx = {
   binarySim,
   binaryScene,
   gwWaves,
-  galaxyCollisionSim,
-  galaxyCollisionScene,
-  galaxyCamLerp: { get value() { return galaxyCamLerp; }, set value(v) { galaxyCamLerp = v; } },
   bh,
   setMinDistance,
   onRsChange,
@@ -305,7 +301,6 @@ let animTime = 0;
 let prevProbeState = PROBE_STATE.IDLE;
 let prevCameraInside = false;
 let binaryCamLerp = 0;
-let galaxyCamLerp = 0;
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -338,7 +333,6 @@ function animate(now) {
   const mode = modeManager.currentMode;
   const isAltScene = mode === 'multiverse' || mode === 'higgs' || mode === 'string_theory';
   const isBinary = mode === 'binary_merger';
-  const isGalaxyCollision = mode === 'galaxy_collision';
   const isDeepField = mode === 'deep_field';
   const isCosmology = mode === 'cosmology';
   const isString = mode === 'string_theory';
@@ -348,7 +342,7 @@ function animate(now) {
   const profile = getRealismProfile(realism);
   const cosmo = engine.universe.cosmology;
 
-  scene.fog.density = isBinary || isGalaxyCollision || isDeepField
+  scene.fog.density = isBinary || isDeepField
     ? profile.fogDensity
     : mode === 'black_hole' || mode === 'gargantua'
       ? profile.fogDensity * (mode === 'gargantua' ? 0.2 : 0.28)
@@ -357,19 +351,27 @@ function animate(now) {
   if (bh.diskMat.uniforms.diskIntensity) {
     bh.diskMat.uniforms.diskIntensity.value = profile.diskIntensity;
   }
+  if (mode === 'black_hole' || mode === 'gargantua') {
+    bh.diskMat.uniforms.exteriorTint.value.set(1, 1, 1);
+  }
   if (bh.diskMat.uniforms.thinness) {
     bh.diskMat.uniforms.thinness.value = profile.diskThinness ?? 0.85;
   }
   if (bh.diskMat.uniforms.volumetric) {
-    const vol = profile.diskVolumetric ?? (mode === 'gargantua' ? 1.0 : 0.35);
-    bh.diskMat.uniforms.volumetric.value = vol;
+    const diskCfg = getDiskCfg();
+    const cfgKey = `${mode}-${realism}-${diskCfg.volumetric}`;
+    if (bh.group.userData.diskCfgKey !== cfgKey) {
+      bh.group.userData.diskCfgKey = cfgKey;
+      bh.update(engine.universe.rsVis, engine.universe.spin, diskCfg);
+    }
+    bh.diskMat.uniforms.volumetric.value = diskCfg.volumetric;
   }
   binarySim.realismMode = realism;
   gwWaves.setRealism?.(realism);
   starfield.setRealism?.(realism);
   galaxyField.setRealism?.(realism);
 
-  if (!isBinary && !isGalaxyCollision && !isDeepField) {
+  if (!isBinary && !isDeepField) {
     starfield.update(scaleFactor, rawDt, life.vitality, null, realism);
     galaxyField.update(scaleFactor, rawDt, cosmo, realism);
     cmbBackground.update(cosmo.redshift);
@@ -400,8 +402,8 @@ function animate(now) {
   interior.animate(animTime);
   horizonTransition.update(rawDt, animTime);
 
-  if (isAltScene || isBinary || isGalaxyCollision || isDeepField) {
-    if (!isBinary && !isGalaxyCollision && !isDeepField) exteriorGroup.visible = false;
+  if (isAltScene || isBinary || isDeepField) {
+    if (!isBinary && !isDeepField) exteriorGroup.visible = false;
     horizonMembrane.visible = false;
     interior.group.visible = false;
     if (isDeepField) {
@@ -453,37 +455,12 @@ function animate(now) {
       camera.position.z += (camZ - camera.position.z) * 0.04;
       controls.target.set(frame.tx, frame.ty, frame.tz);
     }
-    if (isGalaxyCollision) {
-      bh.group.visible = false;
-      exteriorGroup.visible = true;
-      starfield.group.visible = true;
-      galaxyField.group.visible = true;
-      cmbBackground.group.visible = true;
-      grid.grid.visible = false;
-      particles.group.visible = false;
-      starfield.points.material.opacity = 0.5;
-      if (!engine.universe.paused) galaxyCollisionSim.step(rawDt);
-      galaxyCollisionScene.update(rawDt, galaxyCollisionSim);
-      starfield.update(engine.getScaleFactor(), rawDt, life.vitality, null, realism);
-      galaxyField.update(engine.getScaleFactor(), rawDt, cosmo, realism);
-
-      galaxyCamLerp = Math.min(1, galaxyCamLerp + rawDt * 0.85);
-      const frame = galaxyCollisionSim.getCameraFrame();
-      const angle = animTime * 0.08;
-      const camX = Math.sin(angle) * frame.dist * galaxyCamLerp;
-      const camZ = Math.cos(angle) * frame.dist * galaxyCamLerp;
-      camera.position.x += (camX - camera.position.x) * 0.05;
-      camera.position.y += (frame.height - camera.position.y) * 0.05;
-      camera.position.z += (camZ - camera.position.z) * 0.05;
-      controls.target.set(frame.tx, frame.ty, frame.tz);
-    }
   } else {
     bh.group.visible = true;
     bh.group.position.set(0, 0, 0);
     deepField.group.visible = false;
     deepField.showScaleBar(false);
     binaryCamLerp = 0;
-    galaxyCamLerp = 0;
     // Ocultar exterior solo por inmersión de cámara, no cuando solo la sonda cruza
     modeManager.applySceneVisibility(cameraImmersion, horizonSim.interiorOpacity, cameraImmersion);
     const extDim = 1 - Math.min(1, cameraImmersion * 1.1);
@@ -537,9 +514,9 @@ function animate(now) {
   particles.update(particleStates, profile.geodesicOpacity ?? 0.45);
 
   updateHud(engine.universe.getReadouts(), modeManager, isBinary ? binarySim.getReadouts() : null, simulationSeed.seed, isDeepField ? deepField : null);
-  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null, isString ? stringScene : null, isGalaxyCollision ? galaxyCollisionSim : null);
+  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null, isString ? stringScene : null);
   updateModePanel(modeManager);
-  updateLifePanel(lifeEngine, isBinary ? binarySim : isGalaxyCollision ? galaxyCollisionSim : null, isBinary || isGalaxyCollision);
+  updateLifePanel(lifeEngine, isBinary ? binarySim : null, isBinary);
   updateLabPanel(theoryLab);
   updateResearchPanel(appCtx);
 
@@ -549,7 +526,7 @@ function animate(now) {
   lensing.update(
     camera,
     bhWorldPos,
-    engine.universe.showLensing && cameraImmersion < lensImmersion && !isAltScene && !isBinary && !isDeepField && !isGalaxyCollision,
+    engine.universe.showLensing && cameraImmersion < lensImmersion && !isAltScene && !isBinary && !isDeepField,
     engine.universe.rsVis,
     engine.universe.spin,
     profile.lensStrengthMul,
@@ -587,6 +564,23 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'v' || e.key === 'V') {
     cleanView.toggle();
     appCtx.uxDock?.refresh?.();
+  }
+  if (e.key === '=' || e.key === '+') {
+    adjustZoom(camera, controls, 0.82);
+    cameraLife.resetIdle?.();
+  }
+  if (e.key === '-' || e.key === '_') {
+    adjustZoom(camera, controls, 1.22);
+    cameraLife.resetIdle?.();
+  }
+  if (e.key === 'h' || e.key === 'H') {
+    modeManager?.zoomToHorizon?.();
+  }
+  if (e.key === 'd' || e.key === 'D') {
+    modeManager?.zoomToDisk?.();
+  }
+  if (e.key === '0') {
+    modeManager?.zoomWide?.();
   }
   if (e.key === 'Escape') {
     guidePanel?.close?.();

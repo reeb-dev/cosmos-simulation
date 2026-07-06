@@ -24,6 +24,7 @@ export function createScene(container) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
+  controls.zoomSpeed = 1.65;
   controls.minDistance = 0.5;
   controls.maxDistance = 400;
   controls.target.set(0, 0, 0);

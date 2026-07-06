@@ -47,37 +47,11 @@ function probeStateLabel(state) {
   return map[state] ?? state;
 }
 
-export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null, stringScene = null, galaxySim = null) {
+export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null, stringScene = null) {
   const panel = document.getElementById('theory-panel');
   if (!panel) return;
 
   const mode = modeManager ? getMode(modeManager.currentMode) : null;
-
-  if (mode?.id === 'galaxy_collision' && galaxySim) {
-    const r = galaxySim.getReadouts();
-    const eventsHtml = galaxySim.events.slice(0, 4).map((e) => `<div class="life-event">${e.text}</div>`).join('')
-      || `<div class="life-event dim">${t('panels.theory.galaxy.waiting')}</div>`;
-    const body = panel.querySelector('.panel-body') || panel;
-    body.innerHTML = `
-      <span class="theory-status">${r.phase}</span>
-      <p class="theory-short">${t('panels.theory.galaxy.short')}</p>
-      <p class="theory-desc">${t('panels.theory.galaxy.desc')}</p>
-      <div class="theory-readouts">
-        <h3>${t('panels.theory.galaxy.system')}</h3>
-        <div><strong>M₁ / M₂:</strong> ${r.m1.toFixed(2)} / ${r.m2.toFixed(2)} (×10¹⁰ M☉)</div>
-        <div><strong>${t('gui.separation')}:</strong> ${r.separation.toFixed(1)} kpc</div>
-        <div><strong>r<sub>marea</sub>:</strong> ${r.tidalRadius.toFixed(1)} kpc</div>
-        <div><strong>${t('panels.theory.galaxy.tidal')}:</strong> ${r.tidalPct.toFixed(0)}%</div>
-        <div><strong>${t('panels.theory.galaxy.tails')}:</strong> ${r.tailPct.toFixed(0)}%</div>
-        <div><strong>${t('panels.theory.galaxy.starburst')}:</strong> ${r.starburstPct.toFixed(0)}%</div>
-        <div><strong>${t('panels.theory.galaxy.merger')}:</strong> ${r.mergerPct.toFixed(0)}%</div>
-      </div>
-      <div class="life-events">${eventsHtml}</div>
-      <p class="theory-hint">${t('panels.theory.galaxy.hint')}</p>
-    `;
-    setPanelTitle(panel, t('panels.theory.galaxy.title'));
-    return;
-  }
 
   if (mode?.id === 'binary_merger' && binarySim) {
     const r = binarySim.getReadouts();

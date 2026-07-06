@@ -41,58 +41,53 @@ const DISK_FRAG = `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
-  vec3 gargantuaColor(float tNorm) {
-    float hot = pow(max(1.0 - tNorm, 0.02), 0.28);
-    vec3 inner = vec3(1.0, 0.96, 0.88);
-    vec3 mid   = vec3(1.0, 0.48, 0.08);
-    vec3 outer = vec3(0.68, 0.12, 0.02);
-    return mix(mix(outer, mid, smoothstep(0.0, 0.5, hot)), inner, smoothstep(0.4, 1.0, hot));
+  // T_eff ∝ r^(-3/4) en disco delgado; tNorm=0 borde interno (más caliente)
+  vec3 blackbodyColor(float tNorm) {
+    float tempK = 3800.0 + pow(max(1.0 - tNorm, 0.02), 0.72) * 32000.0;
+    float u = clamp((tempK - 3500.0) / 30000.0, 0.0, 1.0);
+    vec3 col;
+    col.r = min(1.0, 0.28 + u * 0.72);
+    col.g = min(1.0, 0.06 + u * 0.78 + (1.0 - u) * 0.06);
+    col.b = min(1.0, u * 0.96 + (1.0 - u) * 0.02);
+    return col;
   }
 
   void main() {
     float tNorm = clamp((vRadius - innerRadius) / max(outerRadius - innerRadius, 0.001), 0.0, 1.0);
     float seam = min(smoothstep(0.0, 0.04, vUv.y), smoothstep(1.0, 0.96, vUv.y));
-    float rot = vUv.y * 6.28318 + time * (0.38 + spin * 0.55);
+    float rot = vUv.y * 6.28318 + time * (0.32 + spin * 0.48);
 
-    float turb1 = noise(vec2(rot * 1.4, time * 0.35));
-    float turb2 = noise(vec2(rot * 3.2 + 2.1, time * 0.18));
-    float turb3 = noise(vec2(rot * 6.5, time * 0.42));
-    float turbulence = (0.62 + turb1 * 0.22 + turb2 * 0.1 + turb3 * 0.06) * seam;
+    float turb = noise(vec2(rot * 2.2, time * 0.22)) * 0.12;
+    float turbulence = (0.88 + turb) * seam;
 
-    float dustLane = smoothstep(0.36, 0.46, noise(vec2(rot * 2.1, 0.7)))
-                   * smoothstep(0.64, 0.54, noise(vec2(rot * 1.3 + 4.0, 1.2)));
-    float filament = pow(turb3, 2.2) * 0.55;
+    float doppler = 1.0 + spin * 0.78 * sin(rot - 0.25);
+    doppler = clamp(doppler, 0.58, 1.55);
+    float beam = smoothstep(0.62, 1.38, doppler);
+    vec3 redshift = vec3(1.08, 0.82, 0.68);
+    vec3 blueshift = vec3(0.82, 0.9, 1.12);
 
-    float doppler = 1.0 + spin * 0.85 * sin(rot - 0.2) + 0.12 * sin(rot * 2.0);
-    doppler = clamp(doppler, 0.35, 1.85);
-    vec3 warmBoost = vec3(1.15, 0.88, 0.68);
-    vec3 coolBoost = vec3(0.58, 0.72, 1.0);
-    float beam = smoothstep(0.35, 0.92, doppler);
+    vec3 color = blackbodyColor(tNorm);
+    color *= mix(redshift, blueshift, beam) * exteriorTint;
+    color *= 0.92 + 0.08 * turbulence;
 
-    vec3 color = gargantuaColor(tNorm);
-    color *= mix(coolBoost, warmBoost, beam) * exteriorTint;
-    color *= 1.0 - dustLane * 0.62;
-    color += vec3(1.0, 0.92, 0.78) * filament * 0.28;
-
-    float innerHot = smoothstep(0.0, 0.18, 1.0 - tNorm);
-    color += vec3(1.0, 0.95, 0.85) * innerHot * 0.22;
+    float innerHot = smoothstep(0.0, 0.15, 1.0 - tNorm);
+    color += vec3(0.92, 0.95, 1.0) * innerHot * 0.12;
 
     float tubeCenter = 1.0 - abs(vTubeU - 0.5) * 2.0;
-    float tubeProfile = pow(max(tubeCenter, 0.0), mix(1.1, 0.32, volumetric));
+    float tubeProfile = pow(max(tubeCenter, 0.0), mix(1.1, 0.38, volumetric));
     float radialFade = smoothstep(innerRadius * 0.97, innerRadius * 1.1, vRadius)
                      * smoothstep(outerRadius * 1.05, outerRadius * 0.88, vRadius);
 
     float alpha;
     if (volumetric > 0.5) {
       alpha = tubeProfile * radialFade * turbulence * diskIntensity * haloStrength;
-      alpha *= 0.78 + 0.22 * innerHot;
     } else {
       float rim = smoothstep(outerRadius, innerRadius * 1.01, vRadius);
       float fade = smoothstep(outerRadius * 0.98, innerRadius, vRadius);
-      alpha = pow(rim * fade, mix(2.0, 4.5, thinness)) * turbulence * diskIntensity * haloStrength;
+      alpha = pow(rim * fade, mix(2.0, 4.0, thinness)) * turbulence * diskIntensity * haloStrength;
     }
 
-    color = min(color, vec3(2.2));
+    color = min(color, vec3(1.6));
     if (alpha < 0.004) discard;
     gl_FragColor = vec4(color, alpha);
   }
@@ -151,27 +146,27 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
   group.add(photonSphere);
 
   const baseUniforms = {
-    innerRadius: { value: rsVis * 2.55 },
-    outerRadius: { value: rsVis * 8.5 },
+    innerRadius: { value: rsVis * innerMul },
+    outerRadius: { value: rsVis * outerMul },
     time: { value: 0 },
     spin: { value: spin },
     exteriorTint: { value: new THREE.Vector3(1, 1, 1) },
-    diskIntensity: { value: 1.25 },
+    diskIntensity: { value: 1.1 },
     haloStrength: { value: 1.0 },
     thinness: { value: 0.75 },
-    volumetric: { value: 1.0 },
+    volumetric: { value: 0.0 },
   };
 
   const { inner, outer, major, tube } = diskRadii(rsVis, innerMul, outerMul, tubeRatio);
   const diskMat = makeDiskMaterial({ ...baseUniforms });
-  const disk = new THREE.Mesh(new THREE.TorusGeometry(major, tube, 64, 320), diskMat);
+  const disk = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 320, 1), diskMat);
   disk.rotation.x = -Math.PI / 2;
   group.add(disk);
 
   const photonRingMat = new THREE.MeshBasicMaterial({
-    color: 0xfff4e0,
+    color: 0xe8f2ff,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.72,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
@@ -183,11 +178,11 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
   group.add(photonRing);
 
   const innerGlow = new THREE.Mesh(
-    new THREE.TorusGeometry(rsVis * 1.51, rsVis * 0.022, 6, 128),
+    new THREE.TorusGeometry(rsVis * 1.51, rsVis * 0.018, 6, 128),
     new THREE.MeshBasicMaterial({
-      color: 0xffe8c8,
+      color: 0xd0e4ff,
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.12,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
@@ -230,10 +225,12 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
     innerGlow,
     lensedHalos,
     photonSphere,
+    userData: { innerMul, outerMul, tubeRatio, useTorus: false },
     update: (rs, s = 0, cfg = {}) => updateBlackHole(group, rs, s, diskMat, photonRing, innerGlow, lensedHalos, {
       innerMul: cfg.innerMul ?? innerMul,
       outerMul: cfg.outerMul ?? outerMul,
       tubeRatio: cfg.tubeRatio ?? tubeRatio,
+      volumetric: cfg.volumetric ?? 0,
     }),
   };
 }
@@ -242,6 +239,9 @@ function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensed
   const innerMul = diskCfg.innerMul ?? 2.55;
   const outerMul = diskCfg.outerMul ?? 8.5;
   const tubeRatio = diskCfg.tubeRatio ?? 0.55;
+  const volumetric = diskCfg.volumetric ?? 0;
+  const useTorus = volumetric > 0.5;
+
   const horizon = group.children[0];
   const photonSphere = group.children[1];
   const disk = group.children[2];
@@ -254,17 +254,30 @@ function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensed
 
   const { inner, outer, major, tube } = diskRadii(rs, innerMul, outerMul, tubeRatio);
 
-  disk.geometry.dispose();
-  disk.geometry = new THREE.TorusGeometry(major, tube, 64, 320);
+  const wasTorus = disk.userData.useTorus === true;
+  if (wasTorus !== useTorus) {
+    disk.geometry.dispose();
+    disk.geometry = useTorus
+      ? new THREE.TorusGeometry(major, tube, 64, 320)
+      : new THREE.RingGeometry(inner, outer, 320, 1);
+    disk.userData.useTorus = useTorus;
+  } else {
+    disk.geometry.dispose();
+    disk.geometry = useTorus
+      ? new THREE.TorusGeometry(major, tube, 64, 320)
+      : new THREE.RingGeometry(inner, outer, 320, 1);
+  }
+
   diskMat.uniforms.innerRadius.value = inner;
   diskMat.uniforms.outerRadius.value = outer;
   diskMat.uniforms.spin.value = spin;
+  diskMat.uniforms.volumetric.value = volumetric;
 
   photonRing.geometry.dispose();
   photonRing.geometry = new THREE.TorusGeometry(rs * 1.5, rs * 0.012, 8, 256);
 
   innerGlow.geometry.dispose();
-  innerGlow.geometry = new THREE.TorusGeometry(rs * 1.51, rs * 0.022, 6, 128);
+  innerGlow.geometry = new THREE.TorusGeometry(rs * 1.51, rs * 0.018, 6, 128);
 
   lensedHalos.children.forEach((halo, i) => {
     const layer = HALO_LAYERS[i];

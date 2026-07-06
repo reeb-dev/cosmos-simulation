@@ -97,7 +97,7 @@ const LensingShader = {
       }
 
       float photonRing = ringBand(dist, rsScreen * 1.48, rsScreen * 0.032);
-      col.rgb += vec3(1.0, 0.96, 0.86) * photonRing * (0.55 + gargantuaBoost * 0.35);
+      col.rgb += vec3(0.91, 0.95, 1.0) * photonRing * (0.55 + gargantuaBoost * 0.35);
 
       if (gargantuaBoost > 0.5) {
         vec2 mirrorY = vec2(vUv.x, blackHoleScreenPos.y - (vUv.y - blackHoleScreenPos.y));

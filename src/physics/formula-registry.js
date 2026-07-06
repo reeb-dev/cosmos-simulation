@@ -1,10 +1,24 @@
 import { C, G, M_SUN, DEFAULT_BLACK_HOLE, DEFAULT_COSMOLOGY } from './constants.js';
 import { schwarzschildRadius, schwarzschildRadiusVis, massFromSolar } from './units.js';
+import { qnmFrequencyHz } from './realism-profiles.js';
 
 /** Constantes físicas adicionales */
 export const HBAR = 1.055e-34;
 export const K_B = 1.381e-23;
 export const MPC = 3.086e22;
+/** Constante de Stefan-Boltzmann */
+export const SIGMA_SB = 5.670374419e-8;
+
+function binaryMasses(ctx) {
+  const m1 = Math.max(safeNum(ctx.m1Solar, 30), 0.1) * M_SUN;
+  const m2 = Math.max(safeNum(ctx.m2Solar, 20), 0.1) * M_SUN;
+  return { m1, m2, M: m1 + m2, mu: (m1 * m2) / (m1 + m2) };
+}
+
+function separationMeters(ctx) {
+  const vis = safeNum(ctx.separationVis ?? ctx.orbitR, safeRs(ctx) * 25);
+  return vis * safeNum(ctx.visScale, 1e10);
+}
 
 function safeNum(v, fallback = 0) {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -284,6 +298,96 @@ export const FORMULA_REGISTRY = {
       return { value: T, unit: 's', display: T / 3600, displayUnit: 'h' };
     },
   },
+  disk_temperature: {
+    id: 'disk_temperature',
+    name: 'Temperatura disco (Shakura-Sunyaev)',
+    latex: 'T \\propto \\left(\\frac{3GM\\dot{m}}{8\\pi\\sigma r^3}\\right)^{1/4}',
+    category: 'agujero_negro',
+    enabled: true,
+    compute: (ctx) => {
+      const rM = safeRadiusVis(ctx, 3) * safeNum(ctx.visScale, 1e10);
+      const mdot = safeNum(ctx.mdot, 1e17);
+      const T = ((3 * G * ctx.massKg * mdot) / (8 * Math.PI * SIGMA_SB * rM ** 3)) ** 0.25;
+      return { value: T, unit: 'K', display: T / 1e6, displayUnit: '×10⁶ K' };
+    },
+  },
+  reduced_mass: {
+    id: 'reduced_mass',
+    name: 'Masa reducida (binario)',
+    latex: '\\mu = \\frac{m_1 m_2}{m_1 + m_2}',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const { mu, M } = binaryMasses(ctx);
+      return { value: mu, unit: 'kg', display: mu / M_SUN, displayUnit: 'M☉' };
+    },
+  },
+  chirp_mass: {
+    id: 'chirp_mass',
+    name: 'Masa de chirp',
+    latex: '\\mathcal{M} = \\frac{(m_1 m_2)^{3/5}}{(m_1 + m_2)^{1/5}}',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const { m1, m2, M } = binaryMasses(ctx);
+      const Mc = (m1 * m2) ** (3 / 5) / M ** (1 / 5);
+      return { value: Mc, unit: 'kg', display: Mc / M_SUN, displayUnit: 'M☉' };
+    },
+  },
+  gw_energy_loss: {
+    id: 'gw_energy_loss',
+    name: 'Pérdida energía orbital (Peters)',
+    latex: '\\frac{dE}{dt} = -\\frac{32}{5}\\frac{G^4\\mu^2 M^3}{c^5 a^5}',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const { m1, m2, M, mu } = binaryMasses(ctx);
+      const sepM = separationMeters(ctx);
+      const dEdt = ((32 / 5) * G ** 4 * mu ** 2 * M ** 3) / (C ** 5 * sepM ** 5);
+      return { value: dEdt, unit: 'J/s' };
+    },
+  },
+  gw_strain_inspiral: {
+    id: 'gw_strain_inspiral',
+    name: 'Strain GW (inspiral)',
+    latex: 'h \\sim \\frac{4G\\mu}{c^2 r}\\left(\\frac{v}{c}\\right)^2',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const { m1, m2, M, mu } = binaryMasses(ctx);
+      const sepM = separationMeters(ctx);
+      const v = Math.sqrt((G * M) / sepM);
+      const h = ((4 * G * mu) / (C ** 2 * sepM)) * (v / C) ** 2;
+      return { value: h, unit: 'adim', simValue: ctx.gwStrain };
+    },
+  },
+  gw_frequency: {
+    id: 'gw_frequency',
+    name: 'Frecuencia GW (chirp)',
+    latex: 'f_{GW} \\approx 2 f_{orb} = \\frac{1}{\\pi}\\sqrt{\\frac{GM}{a^3}}',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const { m1, m2, M } = binaryMasses(ctx);
+      const sepM = separationMeters(ctx);
+      const omega = Math.sqrt((G * M) / sepM ** 3);
+      const fGw = (omega / (2 * Math.PI)) * 2;
+      return { value: fGw, unit: 'Hz', simValue: ctx.gwFrequency };
+    },
+  },
+  qnm_frequency: {
+    id: 'qnm_frequency',
+    name: 'Frecuencia QNM (ringdown)',
+    latex: 'f_{QNM} \\approx f_{geom}\\,(0.3737 + 0.127\\,a)',
+    category: 'ondas_gw',
+    enabled: true,
+    compute: (ctx) => {
+      const mSolar = safeNum(ctx.mergedMassSolar, ctx.massSolar);
+      const spin = safeNum(ctx.mergedSpin ?? ctx.spin, 0.67);
+      const f = qnmFrequencyHz(mSolar, spin);
+      return { value: f, unit: 'Hz' };
+    },
+  },
 };
 
 export const FORMULA_CATEGORIES = {
@@ -292,6 +396,7 @@ export const FORMULA_CATEGORIES = {
   cosmologia: 'Cosmología',
   cuantica: 'Cuántica / Hawking',
   lensing: 'Lensing',
+  ondas_gw: 'Ondas gravitacionales',
   custom: 'Personalizada',
 };
 
@@ -305,7 +410,7 @@ function safeRadiusVis(ctx, factor, minRsMul = 1.001) {
   return Math.max(safeNum(ctx.orbitR ?? ctx.probeR, rs * factor), rs * minRsMul);
 }
 
-export function buildFormulaContext(universe, horizonSim, engine) {
+export function buildFormulaContext(universe, horizonSim, engine, binarySim = null) {
   const massSolar = safeNum(universe?.blackHoleMassSolar, DEFAULT_BLACK_HOLE.massSolar);
   const rs = Math.max(safeNum(universe?.rsVis, schwarzschildRadiusVis(massSolar)), 1e-12);
   const massKg = Math.max(safeNum(universe?.massKg, massFromSolar(massSolar)), 1e-30);
@@ -335,6 +440,13 @@ export function buildFormulaContext(universe, horizonSim, engine) {
     probeR: Math.max(safeNum(horizonSim?.probeRadius, rs * 10), rs * 1.001),
     impactParam: Math.max(rs * 5, schwarzschildRadius(massKg) * 0.01),
     horizonDilation: safeNum(horizonSim?.effectiveTimeDilation, 1),
+    m1Solar: safeNum(binarySim?.m1Solar, 30),
+    m2Solar: safeNum(binarySim?.m2Solar, 20),
+    separationVis: safeNum(binarySim?.separationVis, rs * 25),
+    mergedMassSolar: safeNum(binarySim?.mergedMassSolar, massSolar),
+    mergedSpin: safeNum(binarySim?.mergedSpin, safeNum(universe?.spin, 0)),
+    gwStrain: safeNum(binarySim?.lastPhysicalStrain, undefined),
+    gwFrequency: safeNum(binarySim?.lastFrequency, undefined),
   };
 }
 
