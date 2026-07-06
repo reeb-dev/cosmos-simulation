@@ -67,16 +67,30 @@ export function createLivingStarfield(count = 5000, radius = 200) {
     baseColors[i * 3 + 2] = 1.0;
   }
 
-  function update(scaleFactor, dt = 0.016, vitality = 0.5) {
+  function update(scaleFactor, dt = 0.016, vitality = 0.5, waveDisplacementAt = null) {
     time += dt;
     const pos = geometry.attributes.position.array;
     const col = geometry.attributes.color.array;
 
     for (let i = 0; i < count; i++) {
       if (!alive[i]) continue;
-      pos[i * 3] = comovingPositions[i].x * scaleFactor;
-      pos[i * 3 + 1] = comovingPositions[i].y * scaleFactor;
-      pos[i * 3 + 2] = comovingPositions[i].z * scaleFactor;
+      let x = comovingPositions[i].x * scaleFactor;
+      let y = comovingPositions[i].y * scaleFactor;
+      let z = comovingPositions[i].z * scaleFactor;
+
+      if (waveDisplacementAt) {
+        const disp = waveDisplacementAt(x, y, z);
+        if (disp > 0.001) {
+          const len = Math.sqrt(x * x + y * y + z * z) || 1;
+          x += (x / len) * disp * 3.5;
+          y += (y / len) * disp * 3.5;
+          z += (z / len) * disp * 3.5;
+        }
+      }
+
+      pos[i * 3] = x;
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = z;
 
       const tw = 0.6 + 0.4 * Math.sin(time * twinkleSpeed[i] + twinklePhase[i]);
       const v = 0.5 + vitality * 0.5;
@@ -119,13 +133,19 @@ export function createCosmicGrid(size = 200, divisions = 20) {
   const grid = new THREE.GridHelper(size, divisions, 0x113355, 0x0a1a2a);
   grid.position.y = -30;
 
-  function update(scaleFactor, pulse = 0) {
+  function update(scaleFactor, pulse = 0, waveDisplacementAt = null) {
     const s = scaleFactor * (1 + pulse * 0.02);
     grid.scale.set(s, 1, s);
     const mats = Array.isArray(grid.material) ? grid.material : [grid.material];
     for (const m of mats) {
       m.transparent = true;
       m.opacity = 0.35 + pulse * 0.25;
+    }
+    if (waveDisplacementAt) {
+      const wobble = waveDisplacementAt(0, grid.position.y, 0);
+      grid.position.y = -30 + wobble * 2.5;
+    } else {
+      grid.position.y = -30;
     }
   }
 

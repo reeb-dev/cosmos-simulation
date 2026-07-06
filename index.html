@@ -28,23 +28,40 @@
         width: 100%;
         height: 100%;
       }
+      :root {
+        --left-col: 300px;
+        --right-col: 290px;
+        --hud-top: 12px;
+        --panel-gap: 8px;
+      }
       #hud {
         position: fixed;
-        top: 12px;
+        top: var(--hud-top);
         left: 12px;
+        width: var(--left-col);
         color: #a8d4ff;
-        font-size: 12px;
-        line-height: 1.6;
+        font-size: 11px;
+        line-height: 1.5;
         pointer-events: none;
         text-shadow: 0 0 8px rgba(0, 100, 200, 0.8);
-        z-index: 10;
-        max-width: 280px;
+        z-index: 12;
+        max-width: var(--left-col);
       }
       #hud h1 {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         color: #fff;
+        line-height: 1.25;
+      }
+      #hud .hud-mode {
+        font-size: 10px;
+        color: #88bbff;
+        margin-bottom: 4px;
+        padding: 2px 6px;
+        background: rgba(60, 100, 180, 0.2);
+        border-radius: 4px;
+        display: inline-block;
       }
       #hud .hud-row {
         display: flex;
@@ -96,18 +113,26 @@
       #theory-panel {
         position: fixed;
         bottom: 16px;
-        left: 16px;
-        right: 290px;
-        max-width: 520px;
-        background: rgba(4, 8, 24, 0.88);
+        left: 12px;
+        width: var(--left-col);
+        max-height: 38vh;
+        background: rgba(4, 8, 24, 0.92);
         border: 1px solid rgba(100, 160, 255, 0.25);
         border-radius: 10px;
-        padding: 14px 18px;
         color: #c8ddf5;
-        font-size: 13px;
-        line-height: 1.55;
-        z-index: 10;
+        font-size: 12px;
+        line-height: 1.5;
+        z-index: 11;
         backdrop-filter: blur(8px);
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #theory-panel .panel-body {
+        padding: 0 14px 12px;
+        overflow-y: auto;
+        flex: 1;
         pointer-events: none;
       }
       #theory-panel h2 {
@@ -242,20 +267,78 @@
       }
       #lab-panel {
         position: fixed;
-        top: 200px;
+        top: 118px;
         left: 12px;
-        width: 300px;
-        max-height: 35vh;
-        overflow-y: auto;
+        width: var(--left-col);
+        max-height: calc(100vh - 118px - 38vh - 48px);
+        min-height: 80px;
         background: rgba(8, 6, 20, 0.92);
         border: 1px solid rgba(180, 120, 255, 0.3);
         border-radius: 10px;
-        padding: 12px 14px;
         color: #d4c8f0;
         font-size: 11px;
-        z-index: 10;
+        z-index: 11;
         backdrop-filter: blur(8px);
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #lab-panel .panel-body {
+        padding: 0 12px 10px;
+        overflow-y: auto;
+        flex: 1;
         pointer-events: none;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: flex-end;
+        padding: 4px 8px 0;
+        flex-shrink: 0;
+        pointer-events: auto;
+      }
+      .panel-toggle {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(150, 180, 255, 0.25);
+        border-radius: 4px;
+        color: #a8c4e8;
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1;
+        padding: 2px 8px;
+        pointer-events: auto;
+      }
+      .panel-toggle:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      .panel-collapsed .panel-body {
+        display: none;
+      }
+      .panel-collapsed {
+        max-height: none !important;
+        min-height: 0 !important;
+      }
+      #lab-panel.panel-collapsed {
+        top: auto;
+        bottom: calc(38vh + 28px);
+        max-height: none;
+      }
+      #theory-panel.panel-collapsed {
+        max-height: none;
+      }
+      @media (max-width: 1280px) {
+        :root {
+          --left-col: 260px;
+          --right-col: 260px;
+        }
+        #lab-panel {
+          top: 110px;
+          max-height: calc(100vh - 110px - 32vh - 40px);
+        }
+        #theory-panel {
+          max-height: 32vh;
+        }
       }
       #lab-panel h2 {
         font-size: 14px;
@@ -451,10 +534,28 @@
         font-size: 10px;
       }
       #hud .hud-tagline {
-        font-size: 11px;
+        font-size: 10px;
         color: #6688aa;
-        margin-bottom: 8px;
-        line-height: 1.4;
+        margin-bottom: 6px;
+        line-height: 1.35;
+      }
+      #mode-bar {
+        position: fixed;
+        top: 36px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(4, 12, 32, 0.85);
+        border: 1px solid rgba(100, 180, 255, 0.35);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 10px;
+        color: #88aacc;
+        z-index: 11;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      #mode-bar strong {
+        color: #a8d4ff;
       }
       #tour-banner {
         position: fixed;
@@ -561,11 +662,13 @@
     <div id="help-bar">
       <kbd>?</kbd> guía · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausar · zoom al BH = ver teoría · Tour 60s en controles
     </div>
+    <div id="mode-bar"><strong>Modo:</strong> <span id="mode-bar-label">Agujero negro</span></div>
     <div id="reset-toast"></div>
     <div id="app"></div>
     <div id="hud">
       <h1>¿Qué hay dentro del agujero negro?</h1>
       <p class="hud-tagline">Motor híbrido Schwarzschild + Friedmann + N-cuerpos · Teorías del horizonte</p>
+      <div id="hud-mode-badge" class="hud-mode">Agujero negro</div>
       <div id="hud-readouts"></div>
     </div>
     <div id="theory-panel"></div>

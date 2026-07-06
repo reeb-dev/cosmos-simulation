@@ -43,9 +43,24 @@ export function createCameraLife(controls, camera) {
   return { update, resetIdle, resetCamera, setEnabled };
 }
 
-export function updateLifePanel(lifeEngine) {
+export function updateLifePanel(lifeEngine, binarySim = null, isBinary = false) {
   const el = document.getElementById('life-panel');
   if (!el) return;
+
+  if (isBinary && binarySim) {
+    const eventsHtml = binarySim.events.slice(0, 5).map((e) => `<div class="life-event">${e.text}</div>`).join('')
+      || '<div class="life-event dim">Esperando colisión binaria...</div>';
+    const r = binarySim.getReadouts();
+    el.innerHTML = `
+      <div class="life-header">
+        <span class="life-phase">⚫ ${r.phase}</span>
+        <span class="life-age">M₁=${r.m1} M₂=${r.m2} M☉</span>
+      </div>
+      <div class="life-pulse">〰 Strain GW ${(r.strain * 100).toFixed(0)}% · f=${r.frequency.toExponential(1)} Hz</div>
+      <div class="life-events">${eventsHtml}</div>
+    `;
+    return;
+  }
 
   const phaseLabels = {
     nacimiento: '🌌 Nacimiento',

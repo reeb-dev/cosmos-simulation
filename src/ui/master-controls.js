@@ -1,6 +1,7 @@
 import GUI from 'lil-gui';
 import { DEFAULT_STATE } from '../simulation/reset-manager.js';
 import { HORIZON_THEORIES, THEORY_IDS } from '../simulation/horizon-theories.js';
+import { SIMULATION_MODES, MODE_IDS, FEATURED_THEORIES } from '../simulation/simulation-modes.js';
 import { EXPERIMENTS } from '../lab/theory-lab.js';
 import { FORMULA_PRESETS, createCustomFormula, saveCustomFormulas, clearCustomFormulasStorage } from '../lab/custom-formula.js';
 import { showResetToast } from './lab-panel.js';
@@ -20,6 +21,11 @@ for (const id of THEORY_IDS) {
 function theoryNameById(id) {
   const t = HORIZON_THEORIES[id];
   return `${theoryPrefix(t)}${t.name}`;
+}
+
+const modeOptions = {};
+for (const id of MODE_IDS) {
+  modeOptions[SIMULATION_MODES[id].name] = id;
 }
 
 /**
@@ -44,9 +50,30 @@ export function createMasterGui(ctx) {
     lifeEnabled: ctx.lifeEngine.enabled,
     theory: theoryNameById(ctx.horizonSim.theoryId),
     autoCamera: true,
+    simMode: SIMULATION_MODES[ctx.modeManager?.currentMode ?? 'black_hole'].name,
   };
 
   const controllers = {};
+
+  const modeFolder = gui.addFolder('Modo de simulación');
+  controllers.simMode = modeFolder.add(state, 'simMode', Object.keys(modeOptions)).name('Escena').onChange((name) => {
+    const id = modeOptions[name];
+    ctx.modeManager?.setMode(id);
+  });
+  modeFolder.open();
+
+  const featured = {};
+  for (const t of FEATURED_THEORIES) featured[t.label] = t.id;
+  const pickTheory = (id) => {
+    ctx.horizonSim.setTheory(id);
+    ctx.onTheoryChange(id);
+    ctx.modeManager?.zoomToHorizon?.();
+    syncFromUniverse();
+  };
+  const featuredFolder = modeFolder.addFolder('Teorías destacadas');
+  for (const t of FEATURED_THEORIES) {
+    featuredFolder.add({ pick: () => pickTheory(t.id) }, 'pick').name(t.label);
+  }
 
   const bh = gui.addFolder('Agujero negro');
   controllers.mass = bh.add(state, 'massSolar', 1, 100, 1).name('Masa (M☉)').onChange((v) => {
@@ -58,6 +85,56 @@ export function createMasterGui(ctx) {
     ctx.onRsChange();
   });
   bh.open();
+
+  const binaryState = {
+    m1: ctx.binarySim?.m1Solar ?? 30,
+    m2: ctx.binarySim?.m2Solar ?? 20,
+    separation: ctx.binarySim?.separationVis ?? 80,
+    spin1: ctx.binarySim?.spin1 ?? 0.6,
+    spin2: ctx.binarySim?.spin2 ?? 0.4,
+    hawkingDeath: ctx.binarySim?.hawkingDeath ?? true,
+  };
+  const binaryFolder = gui.addFolder('Choque binario');
+  binaryFolder.add(binaryState, 'm1', 5, 80, 1).name('M₁ (M☉)').onChange((v) => {
+    ctx.binarySim?.configure({ m1Solar: v });
+  });
+  binaryFolder.add(binaryState, 'm2', 5, 80, 1).name('M₂ (M☉)').onChange((v) => {
+    ctx.binarySim?.configure({ m2Solar: v });
+  });
+  binaryFolder.add(binaryState, 'separation', 30, 150, 1).name('Separación').onChange((v) => {
+    ctx.binarySim?.configure({ separationVis: v });
+  });
+  binaryFolder.add(binaryState, 'spin1', 0, 0.998, 0.01).name('Spin M₁').onChange((v) => {
+    ctx.binarySim?.configure({ spin1: v });
+  });
+  binaryFolder.add(binaryState, 'spin2', 0, 0.998, 0.01).name('Spin M₂').onChange((v) => {
+    ctx.binarySim?.configure({ spin2: v });
+  });
+  binaryFolder.add(binaryState, 'hawkingDeath').name('Muerte por Hawking').onChange((v) => {
+    ctx.binarySim?.configure({ hawkingDeath: v });
+  });
+  binaryFolder.add({
+    start: () => {
+      ctx.modeManager?.setMode('binary_merger');
+      ctx.binarySim?.configure({
+        m1Solar: binaryState.m1,
+        m2Solar: binaryState.m2,
+        separationVis: binaryState.separation,
+        spin1: binaryState.spin1,
+        spin2: binaryState.spin2,
+        hawkingDeath: binaryState.hawkingDeath,
+        timeScale: ctx.universe.timeScale,
+      });
+      ctx.binarySim?.startCollision();
+    },
+  }, 'start').name('▶ Iniciar colisión');
+  binaryFolder.add({
+    resetBinary: () => {
+      ctx.binarySim?.reset();
+      ctx.binaryScene?.reset?.();
+      ctx.gwWaves?.reset?.();
+    },
+  }, 'resetBinary').name('↺ Reiniciar binario');
 
   const cosmo = gui.addFolder('Cosmología');
   controllers.preset = cosmo.add(state, 'cosmoPreset', {
@@ -97,6 +174,7 @@ export function createMasterGui(ctx) {
   const sim = gui.addFolder('Simulación');
   controllers.time = sim.add(state, 'timeScaleLog', 2, 7, 0.1).name('Velocidad (10^x)').onChange((v) => {
     ctx.universe.timeScale = 10 ** v;
+    ctx.binarySim?.configure({ timeScale: ctx.universe.timeScale });
   });
   controllers.paused = sim.add(state, 'paused').name('Pausar').onChange((v) => { ctx.universe.paused = v; });
   controllers.exp = sim.add(state, 'showExpansion').name('Expansión').onChange((v) => { ctx.universe.showExpansion = v; });
@@ -157,6 +235,7 @@ export function createMasterGui(ctx) {
     state.showLensing = u.showLensing;
     state.lifeEnabled = ctx.lifeEngine.enabled;
     state.theory = theoryNameById(ctx.horizonSim.theoryId);
+    state.simMode = SIMULATION_MODES[ctx.modeManager?.currentMode ?? 'black_hole'].name;
     for (const c of Object.values(controllers)) c?.updateDisplay?.();
   }
 
@@ -175,6 +254,7 @@ export function createMasterGui(ctx) {
     state.showLensing = d.showLensing;
     state.lifeEnabled = d.lifeEnabled;
     state.theory = theoryNameById(d.theoryId);
+    state.simMode = SIMULATION_MODES.black_hole.name;
     syncFromUniverse();
   }
 

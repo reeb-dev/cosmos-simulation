@@ -19,12 +19,18 @@ import { createParticleSystem } from './rendering/particles.js';
 import { createScene } from './rendering/scene.js';
 import { createLivingStarfield, createCosmicGrid } from './rendering/living-starfield.js';
 import { createMasterGui } from './ui/master-controls.js';
-import { updateTheoryPanel } from './ui/horizon-panel.js';
-import { updateHud } from './ui/horizon-panel.js';
+import { updateHud, updateTheoryPanel, updateModePanel } from './ui/horizon-panel.js';
 import { createCameraLife, updateLifePanel } from './ui/life-panel.js';
 import { updateLabPanel, updateExperimentModal, showResetToast } from './ui/lab-panel.js';
 import { createGuidePanel } from './ui/guide-panel.js';
 import { createCosmicTour } from './ui/cosmic-tour.js';
+import { createMultiverseWorld } from './rendering/multiverse-world.js';
+import { createHiggsScene } from './rendering/higgs-scene.js';
+import { createBinaryBlackHolesScene } from './rendering/binary-black-holes.js';
+import { createGravitationalWaves } from './rendering/gravitational-waves.js';
+import { BinaryBlackHoleSim } from './simulation/binary-black-holes.js';
+import { SimulationModeManager } from './simulation/simulation-modes.js';
+import { initPanelCollapse } from './ui/panel-collapse.js';
 
 const container = document.getElementById('app');
 const engine = new SimulationEngine();
@@ -68,6 +74,20 @@ const exteriorGroup = new THREE.Group();
 exteriorGroup.add(starfield.points, grid.grid, particles.group, bh.group);
 scene.add(exteriorGroup);
 
+const multiverseWorld = createMultiverseWorld(engine.universe.cosmology);
+const higgsScene = createHiggsScene();
+const binarySim = new BinaryBlackHoleSim();
+const binaryScene = createBinaryBlackHolesScene();
+const gwWaves = createGravitationalWaves();
+scene.add(multiverseWorld.group, higgsScene.group, binaryScene.group, gwWaves.group);
+
+// Guardar opacidades base del BH para modos
+bh.group.traverse((obj) => {
+  if (obj.material?.opacity !== undefined) {
+    obj.userData.baseOpacity = obj.material.opacity;
+  }
+});
+
 const lensing = createLensingPass(renderer, scene, camera);
 lensing.setSize(container.clientWidth, container.clientHeight);
 
@@ -101,6 +121,17 @@ const appCtx = {
   controls,
   cameraLife,
   customFormulas,
+  scene,
+  exteriorGroup,
+  horizonMembrane,
+  interior,
+  multiverseWorld,
+  higgsScene,
+  binarySim,
+  binaryScene,
+  gwWaves,
+  bh,
+  setMinDistance,
   onRsChange,
   onTheoryChange: (id) => applyTheoryVisual(id),
   onExperiment: (id, result) => updateExperimentModal(result),
@@ -111,6 +142,9 @@ const appCtx = {
   },
 };
 
+const modeManager = new SimulationModeManager(appCtx);
+appCtx.modeManager = modeManager;
+
 const resetManager = new ResetManager(appCtx);
 appCtx.resetManager = resetManager;
 
@@ -120,10 +154,15 @@ const cosmicTour = createCosmicTour(appCtx);
 appCtx.cosmicTour = cosmicTour;
 cosmicTour.showWelcomeIfNeeded();
 
+initPanelCollapse('lab-panel', { defaultCollapsed: false });
+initPanelCollapse('theory-panel', { defaultCollapsed: false });
+modeManager.setMode('black_hole');
+
 let lastTime = performance.now();
 let animTime = 0;
 let prevProbeState = PROBE_STATE.IDLE;
 let prevCameraInside = false;
+let binaryCamLerp = 0;
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -150,12 +189,17 @@ function animate(now) {
   cameraLife.update(rawDt, life.vitality);
   theoryLab.step();
 
-  const scaleFactor = engine.getScaleFactor();
-  starfield.update(scaleFactor, rawDt, life.vitality);
-  grid.update(scaleFactor, life.pulse);
-
   const interiorOpacity = horizonSim.interiorOpacity;
   const cameraImmersion = horizonSim.cameraCrossingProgress;
+  const mode = modeManager.currentMode;
+  const isAltScene = mode === 'multiverse' || mode === 'higgs';
+  const isBinary = mode === 'binary_merger';
+
+  const scaleFactor = engine.getScaleFactor();
+  if (!isBinary) {
+    starfield.update(scaleFactor, rawDt, life.vitality);
+    grid.update(scaleFactor, life.pulse);
+  }
 
   if (
     horizonSim.probeState === PROBE_STATE.CROSSING &&
@@ -175,12 +219,50 @@ function animate(now) {
   interior.animate(animTime);
   horizonTransition.update(rawDt, animTime);
 
-  // Ocultar el exterior solo cuando la cámara cruza el horizonte (no cuando solo la sonda cruza)
-  exteriorGroup.visible = cameraImmersion < 0.95;
-  const extDim = 1 - Math.min(1, cameraImmersion * 1.1);
-  starfield.points.material.opacity = 0.3 + extDim * 0.6;
-  grid.grid.visible = cameraImmersion < 0.85;
-  horizonMembrane.material.opacity = 0.3 + (1 - Math.min(1, interiorOpacity * 1.5)) * 0.5;
+  if (isAltScene || isBinary) {
+    if (!isBinary) exteriorGroup.visible = false;
+    horizonMembrane.visible = false;
+    interior.group.visible = false;
+    if (mode === 'multiverse') {
+      multiverseWorld.animate(animTime, rawDt);
+      multiverseWorld.updateCosmology(engine.universe.cosmology);
+    }
+    if (mode === 'higgs') higgsScene.animate(animTime, rawDt);
+    if (isBinary) {
+      bh.group.visible = false;
+      exteriorGroup.visible = true;
+      starfield.points.material.opacity = 0.75;
+      grid.grid.visible = true;
+      if (!engine.universe.paused) binarySim.step(rawDt);
+      binaryScene.update(rawDt, binarySim, animTime);
+      gwWaves.update(rawDt, binarySim);
+      starfield.update(engine.getScaleFactor(), rawDt, life.vitality, gwWaves.waveDisplacementAt);
+      grid.update(engine.getScaleFactor(), life.pulse, gwWaves.waveDisplacementAt);
+
+      binaryCamLerp = Math.min(1, binaryCamLerp + rawDt * 0.8);
+      const frame = binarySim.getCameraFrame();
+      const targetDist = frame.dist;
+      const targetH = frame.height;
+      const angle = animTime * 0.12;
+      const camX = Math.sin(angle) * targetDist * binaryCamLerp;
+      const camZ = Math.cos(angle) * targetDist * binaryCamLerp;
+      camera.position.x += (camX - camera.position.x) * 0.04;
+      camera.position.y += (targetH - camera.position.y) * 0.04;
+      camera.position.z += (camZ - camera.position.z) * 0.04;
+      controls.target.set(frame.tx, frame.ty, frame.tz);
+    }
+  } else {
+    bh.group.visible = true;
+    binaryCamLerp = 0;
+    modeManager.applySceneVisibility(cameraImmersion);
+    const extDim = 1 - Math.min(1, cameraImmersion * 1.1);
+    starfield.points.material.opacity = 0.3 + extDim * 0.6;
+    grid.grid.visible = cameraImmersion < 0.85;
+    horizonMembrane.material.opacity = 0.3 + (1 - Math.min(1, interiorOpacity * 1.5)) * 0.5;
+
+    const bhScale = modeManager.currentMode === 'cosmology' ? 0.35 : 1;
+    bh.group.scale.setScalar(bhScale);
+  }
 
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
@@ -193,13 +275,14 @@ function animate(now) {
   probe.update(horizonSim.getProbePosition(), horizonSim.probeState !== 'idle');
   particles.update(engine.universe.showGeodesics ? engine.getParticleStates() : []);
 
-  updateHud(engine.universe.getReadouts());
-  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine });
-  updateLifePanel(lifeEngine);
+  updateHud(engine.universe.getReadouts(), modeManager, isBinary ? binarySim.getReadouts() : null);
+  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null);
+  updateModePanel(modeManager);
+  updateLifePanel(lifeEngine, isBinary ? binarySim : null, isBinary);
   updateLabPanel(theoryLab);
 
   controls.update();
-  lensing.update(camera, bhWorldPos, engine.universe.showLensing && cameraImmersion < 0.8, engine.universe.rsVis, engine.universe.spin);
+  lensing.update(camera, bhWorldPos, engine.universe.showLensing && cameraImmersion < 0.8 && !isAltScene && !isBinary, engine.universe.rsVis, engine.universe.spin);
   lensing.render();
 }
 

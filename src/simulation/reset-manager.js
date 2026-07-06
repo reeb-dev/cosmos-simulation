@@ -91,6 +91,7 @@ export class ResetManager {
     starfield?.reset?.();
     cameraLife?.resetIdle?.();
     cameraLife?.resetCamera?.(camera, controls);
+    this.ctx.modeManager?.setMode?.('black_hole');
 
     this.ctx.onVisualUpdate?.();
     this.ctx.onTheoryChange?.(d.theoryId);

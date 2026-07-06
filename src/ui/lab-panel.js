@@ -4,6 +4,7 @@ import { getEraForZ } from '../lab/theory-lab.js';
 export function updateLabPanel(lab) {
   const panel = document.getElementById('lab-panel');
   if (!panel) return;
+  const body = panel.querySelector('.panel-body') || panel;
 
   const results = lab.lastResults;
   const z = lab.universe.cosmology.redshift;
@@ -45,7 +46,7 @@ export function updateLabPanel(lab) {
     html += '</div>';
   }
 
-  panel.innerHTML = html;
+  body.innerHTML = html;
 }
 
 function renderTimeline(z) {
