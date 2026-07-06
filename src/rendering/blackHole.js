@@ -42,55 +42,57 @@ const DISK_FRAG = `
   }
 
   vec3 gargantuaColor(float tNorm) {
-    float hot = pow(max(1.0 - tNorm, 0.012), 0.22);
-    vec3 inner = vec3(1.0, 0.99, 0.96);
-    vec3 mid   = vec3(1.0, 0.52, 0.1);
-    vec3 outer = vec3(0.75, 0.14, 0.03);
-    return mix(mix(outer, mid, smoothstep(0.0, 0.45, hot)), inner, smoothstep(0.32, 1.0, hot));
+    float hot = pow(max(1.0 - tNorm, 0.02), 0.28);
+    vec3 inner = vec3(1.0, 0.96, 0.88);
+    vec3 mid   = vec3(1.0, 0.48, 0.08);
+    vec3 outer = vec3(0.68, 0.12, 0.02);
+    return mix(mix(outer, mid, smoothstep(0.0, 0.5, hot)), inner, smoothstep(0.4, 1.0, hot));
   }
 
   void main() {
     float tNorm = clamp((vRadius - innerRadius) / max(outerRadius - innerRadius, 0.001), 0.0, 1.0);
+    float seam = min(smoothstep(0.0, 0.04, vUv.y), smoothstep(1.0, 0.96, vUv.y));
     float rot = vUv.y * 6.28318 + time * (0.38 + spin * 0.55);
 
     float turb1 = noise(vec2(rot * 1.4, time * 0.35));
     float turb2 = noise(vec2(rot * 3.2 + 2.1, time * 0.18));
     float turb3 = noise(vec2(rot * 6.5, time * 0.42));
-    float turbulence = 0.55 + turb1 * 0.25 + turb2 * 0.12 + turb3 * 0.08;
+    float turbulence = (0.62 + turb1 * 0.22 + turb2 * 0.1 + turb3 * 0.06) * seam;
 
-    float dustLane = smoothstep(0.38, 0.48, noise(vec2(rot * 2.1, 0.7)))
-                   * smoothstep(0.62, 0.52, noise(vec2(rot * 1.3 + 4.0, 1.2)));
-    float filament = pow(turb3, 2.5) * 0.85;
+    float dustLane = smoothstep(0.36, 0.46, noise(vec2(rot * 2.1, 0.7)))
+                   * smoothstep(0.64, 0.54, noise(vec2(rot * 1.3 + 4.0, 1.2)));
+    float filament = pow(turb3, 2.2) * 0.55;
 
-    float doppler = 1.0 + spin * 0.95 * sin(rot - 0.2) + 0.15 * sin(rot * 2.0);
-    doppler = clamp(doppler, 0.28, 2.1);
-    vec3 warmBoost = vec3(1.28, 0.95, 0.72);
-    vec3 coolBoost = vec3(0.55, 0.72, 1.08);
-    float beam = smoothstep(0.32, 0.95, doppler);
+    float doppler = 1.0 + spin * 0.85 * sin(rot - 0.2) + 0.12 * sin(rot * 2.0);
+    doppler = clamp(doppler, 0.35, 1.85);
+    vec3 warmBoost = vec3(1.15, 0.88, 0.68);
+    vec3 coolBoost = vec3(0.58, 0.72, 1.0);
+    float beam = smoothstep(0.35, 0.92, doppler);
 
     vec3 color = gargantuaColor(tNorm);
     color *= mix(coolBoost, warmBoost, beam) * exteriorTint;
-    color *= 1.0 - dustLane * 0.55;
-    color += vec3(1.0, 0.98, 0.92) * filament * 0.45;
+    color *= 1.0 - dustLane * 0.62;
+    color += vec3(1.0, 0.92, 0.78) * filament * 0.28;
 
-    float innerHot = smoothstep(0.0, 0.22, 1.0 - tNorm);
-    color += vec3(1.0, 1.0, 0.98) * innerHot * 0.55;
+    float innerHot = smoothstep(0.0, 0.18, 1.0 - tNorm);
+    color += vec3(1.0, 0.95, 0.85) * innerHot * 0.22;
 
     float tubeCenter = 1.0 - abs(vTubeU - 0.5) * 2.0;
-    float tubeProfile = pow(max(tubeCenter, 0.0), mix(1.1, 0.38, volumetric));
-    float radialFade = smoothstep(innerRadius * 0.96, innerRadius * 1.08, vRadius)
-                     * smoothstep(outerRadius * 1.04, outerRadius * 0.9, vRadius);
+    float tubeProfile = pow(max(tubeCenter, 0.0), mix(1.1, 0.32, volumetric));
+    float radialFade = smoothstep(innerRadius * 0.97, innerRadius * 1.1, vRadius)
+                     * smoothstep(outerRadius * 1.05, outerRadius * 0.88, vRadius);
 
     float alpha;
     if (volumetric > 0.5) {
       alpha = tubeProfile * radialFade * turbulence * diskIntensity * haloStrength;
-      alpha *= 0.85 + 0.15 * innerHot;
+      alpha *= 0.78 + 0.22 * innerHot;
     } else {
       float rim = smoothstep(outerRadius, innerRadius * 1.01, vRadius);
       float fade = smoothstep(outerRadius * 0.98, innerRadius, vRadius);
       alpha = pow(rim * fade, mix(2.0, 4.5, thinness)) * turbulence * diskIntensity * haloStrength;
     }
 
+    color = min(color, vec3(2.2));
     if (alpha < 0.004) discard;
     gl_FragColor = vec4(color, alpha);
   }
@@ -155,32 +157,32 @@ export function createBlackHole(rsVis, spin = 0) {
 
   const { inner, outer } = diskRadii(rsVis);
   const major = (inner + outer) * 0.5;
-  const tube = (outer - inner) * 0.42;
+  const tube = (outer - inner) * 0.55;
   const diskMat = makeDiskMaterial({ ...baseUniforms });
-  const disk = new THREE.Mesh(new THREE.TorusGeometry(major, tube, 48, 256), diskMat);
+  const disk = new THREE.Mesh(new THREE.TorusGeometry(major, tube, 64, 320), diskMat);
   disk.rotation.x = -Math.PI / 2;
   group.add(disk);
 
   const photonRingMat = new THREE.MeshBasicMaterial({
-    color: 0xfffaf0,
+    color: 0xfff4e0,
     transparent: true,
-    opacity: 0.98,
+    opacity: 0.55,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
   const photonRing = new THREE.Mesh(
-    new THREE.TorusGeometry(rsVis * 1.5, rsVis * 0.028, 12, 256),
+    new THREE.TorusGeometry(rsVis * 1.5, rsVis * 0.012, 8, 256),
     photonRingMat,
   );
   photonRing.rotation.x = -Math.PI / 2;
   group.add(photonRing);
 
   const innerGlow = new THREE.Mesh(
-    new THREE.TorusGeometry(rsVis * 1.52, rsVis * 0.055, 8, 128),
+    new THREE.TorusGeometry(rsVis * 1.51, rsVis * 0.022, 6, 128),
     new THREE.MeshBasicMaterial({
-      color: 0xffeedd,
+      color: 0xffe8c8,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.18,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
@@ -240,19 +242,19 @@ function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensed
 
   const { inner, outer } = diskRadii(rs);
   const major = (inner + outer) * 0.5;
-  const tube = (outer - inner) * 0.42;
+  const tube = (outer - inner) * 0.55;
 
   disk.geometry.dispose();
-  disk.geometry = new THREE.TorusGeometry(major, tube, 48, 256);
+  disk.geometry = new THREE.TorusGeometry(major, tube, 64, 320);
   diskMat.uniforms.innerRadius.value = inner;
   diskMat.uniforms.outerRadius.value = outer;
   diskMat.uniforms.spin.value = spin;
 
   photonRing.geometry.dispose();
-  photonRing.geometry = new THREE.TorusGeometry(rs * 1.5, rs * 0.028, 12, 256);
+  photonRing.geometry = new THREE.TorusGeometry(rs * 1.5, rs * 0.012, 8, 256);
 
   innerGlow.geometry.dispose();
-  innerGlow.geometry = new THREE.TorusGeometry(rs * 1.52, rs * 0.055, 8, 128);
+  innerGlow.geometry = new THREE.TorusGeometry(rs * 1.51, rs * 0.022, 6, 128);
 
   lensedHalos.children.forEach((halo, i) => {
     const layer = HALO_LAYERS[i];

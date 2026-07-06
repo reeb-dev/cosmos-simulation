@@ -509,8 +509,10 @@ function animate(now) {
   }
   if (bh.photonRingMat) {
     const ringBase = profile.photonRingOpacity ?? 0.9;
-    bh.photonRingMat.opacity = ringBase + Math.sin(animTime * 1.8) * 0.04;
+    const isGargantuaMode = mode === 'gargantua';
+    bh.photonRingMat.opacity = isGargantuaMode ? 0.35 : ringBase + Math.sin(animTime * 1.8) * 0.04;
     bh.photonRing.visible = !isAltScene && !isBinary && cameraImmersion < 0.75;
+    if (bh.innerGlow) bh.innerGlow.visible = !isGargantuaMode && bh.photonRing.visible;
   }
   horizonMat.uniforms.time.value = animTime;
   const visual = getHorizonVisual(horizonSim.theoryId);
