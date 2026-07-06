@@ -105,6 +105,44 @@ function makeDiskMaterial(uniforms) {
   });
 }
 
+const BARRIER_VERT = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const BARRIER_FRAG = `
+  uniform float time;
+  uniform float spin;
+  uniform float intensity;
+  varying vec2 vUv;
+
+  void main() {
+    float x = abs(vUv.x - 0.5) * 2.0;
+    float radial = smoothstep(1.0, 0.12, x) * smoothstep(0.03, 0.14, x);
+    float yThin = exp(-pow((vUv.y - 0.5) * 28.0, 2.0));
+    float pulse = 0.93 + 0.07 * sin(time * (1.1 + spin * 0.6));
+    vec3 col = vec3(0.94, 0.95, 1.0) * (0.82 + radial * 0.35);
+    float alpha = radial * yThin * intensity * pulse;
+    if (alpha < 0.008) discard;
+    gl_FragColor = vec4(col, alpha);
+  }
+`;
+
+function makeTransverseBarrierMaterial(uniforms) {
+  return new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: BARRIER_VERT,
+    fragmentShader: BARRIER_FRAG,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+}
+
 function diskRadii(rs, innerMul = 2.55, outerMul = 8.5, tubeRatio = 0.55) {
   const inner = rs * innerMul;
   const outer = rs * outerMul;
@@ -163,6 +201,19 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
   disk.rotation.x = -Math.PI / 2;
   group.add(disk);
 
+  const transverseBarrierMat = makeTransverseBarrierMaterial({
+    time: baseUniforms.time,
+    spin: baseUniforms.spin,
+    intensity: { value: 1.1 },
+  });
+  const transverseBarrier = new THREE.Mesh(
+    new THREE.PlaneGeometry(outer * 2.35, rsVis * 0.09, 1, 1),
+    transverseBarrierMat,
+  );
+  transverseBarrier.rotation.x = -Math.PI / 2;
+  transverseBarrier.renderOrder = 2;
+  group.add(transverseBarrier);
+
   const photonRingMat = new THREE.MeshBasicMaterial({
     color: 0xe8f2ff,
     transparent: true,
@@ -220,13 +271,15 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
     horizon,
     disk,
     diskMat,
+    transverseBarrier,
+    transverseBarrierMat,
     photonRing,
     photonRingMat,
     innerGlow,
     lensedHalos,
     photonSphere,
     userData: { innerMul, outerMul, tubeRatio, useTorus: false },
-    update: (rs, s = 0, cfg = {}) => updateBlackHole(group, rs, s, diskMat, photonRing, innerGlow, lensedHalos, {
+    update: (rs, s = 0, cfg = {}) => updateBlackHole(group, rs, s, diskMat, transverseBarrier, transverseBarrierMat, photonRing, innerGlow, lensedHalos, {
       innerMul: cfg.innerMul ?? innerMul,
       outerMul: cfg.outerMul ?? outerMul,
       tubeRatio: cfg.tubeRatio ?? tubeRatio,
@@ -235,7 +288,7 @@ export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
   };
 }
 
-function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensedHalos, diskCfg = {}) {
+function updateBlackHole(group, rs, spin, diskMat, transverseBarrier, transverseBarrierMat, photonRing, innerGlow, lensedHalos, diskCfg = {}) {
   const innerMul = diskCfg.innerMul ?? 2.55;
   const outerMul = diskCfg.outerMul ?? 8.5;
   const tubeRatio = diskCfg.tubeRatio ?? 0.55;
@@ -272,6 +325,10 @@ function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensed
   diskMat.uniforms.outerRadius.value = outer;
   diskMat.uniforms.spin.value = spin;
   diskMat.uniforms.volumetric.value = volumetric;
+
+  transverseBarrier.geometry.dispose();
+  transverseBarrier.geometry = new THREE.PlaneGeometry(outer * 2.35, rs * 0.09, 1, 1);
+  transverseBarrierMat.uniforms.spin.value = spin;
 
   photonRing.geometry.dispose();
   photonRing.geometry = new THREE.TorusGeometry(rs * 1.5, rs * 0.012, 8, 256);

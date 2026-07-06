@@ -115,15 +115,23 @@ const LensingShader = {
         vec3 diskBand = sampleDiskBand(vec2(vUv.x, blackHoleScreenPos.y));
         col.rgb += texture2D(tDiffuse, clamp(mirrorY, 0.0, 1.0)).rgb * topMask * 0.55;
         col.rgb += texture2D(tDiffuse, clamp(mirrorY2, 0.0, 1.0)).rgb * botMask * 0.32;
-        col.rgb += diskBand * distMask * xNarrow * 0.18;
+        col.rgb += diskBand * distMask * xNarrow * 0.28;
 
-        float horizBand = exp(-pow(toBH.y / max(rsScreen * 0.75, 0.003), 2.0) * 0.5);
-        horizBand *= smoothstep(rsScreen * 3.8, rsScreen * 0.55, dist);
+        float horizBand = exp(-pow(toBH.y / max(rsScreen * 0.42, 0.002), 2.0) * 0.65);
+        horizBand *= smoothstep(rsScreen * 0.08, rsScreen * 0.55, abs(toBH.x));
+        horizBand *= smoothstep(rsScreen * 4.0, rsScreen * 0.45, dist);
+        vec3 barCol = vec3(0.93, 0.95, 1.0);
+        col.rgb += barCol * horizBand * 0.72;
         col.rgb += texture2D(tDiffuse, clamp(vec2(vUv.x, blackHoleScreenPos.y), 0.0, 1.0)).rgb
-                 * horizBand * 0.22;
+                 * horizBand * 0.18;
       } else {
         float einsteinRing = ringBand(dist, einsteinScreen, einsteinScreen * 0.06);
         col.rgb += vec3(1.0, 0.62, 0.22) * einsteinRing * 0.45;
+
+        float transBar = exp(-pow(toBH.y / max(rsScreen * 0.55, 0.003), 2.0) * 0.55);
+        transBar *= smoothstep(rsScreen * 0.1, rsScreen * 0.5, abs(toBH.x));
+        transBar *= smoothstep(rsScreen * 3.5, rsScreen * 0.5, dist);
+        col.rgb += vec3(0.92, 0.94, 0.99) * transBar * 0.38;
       }
 
       float bloomMask = smoothstep(rsScreen * 0.2, rsScreen * 0.55, dist);

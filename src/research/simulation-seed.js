@@ -1,6 +1,7 @@
 /**
  * RNG determinista (mulberry32) y codificación de estado en URL.
  */
+import { applyModePreset } from '../physics/mode-presets.js';
 
 export const DEFAULT_SEED = 42;
 
@@ -56,7 +57,7 @@ export class SimulationSeed {
 
 /** Parámetros reconocidos en la URL */
 const URL_PARAMS = [
-  'mode', 'theory', 'seed',
+  'mode', 'preset', 'theory', 'seed',
   'M1', 'M2', 'M', 'H0', 'OmegaM', 'OmegaLambda',
   'spin', 'timeScale',
 ];
@@ -135,7 +136,9 @@ export function applyUrlState(ctx, urlState) {
       m2Solar: urlState.M2 ?? ctx.binarySim.m2Solar,
     });
   }
-  if (urlState.mode != null) {
+  if (urlState.preset != null) {
+    applyModePreset(ctx, String(urlState.preset));
+  } else if (urlState.mode != null) {
     ctx.modeManager?.setMode(String(urlState.mode));
   }
   ctx.guiSync?.();

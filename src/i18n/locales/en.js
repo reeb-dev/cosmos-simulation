@@ -13,6 +13,7 @@ export default {
     "title": "What's inside the black hole?",
     "tagline": "Hybrid Schwarzschild + Friedmann + N-body engine · Horizon theories",
     "modeLabel": "Mode:",
+    "presetLabel": "Scenarios",
     "seed": "Seed"
   },
   "helpBar": "<kbd>?</kbd> guide · <kbd>I</kbd> mode · <kbd>📊</kbd> research · <kbd>V</kbd> view · <kbd>G</kbd> controls · <kbd>R</kbd> reset · <kbd>Space</kbd> pause",
@@ -491,6 +492,7 @@ export default {
   "gui": {
     "title": "Controls",
     "modeFolder": "Simulation mode",
+    "modePresets": "Test scenarios",
     "scene": "Scene",
     "modeHint": "Controls for: {mode}",
     "featuredFolder": "Featured theories",
@@ -709,7 +711,19 @@ export default {
     "resetFull": "⏮ FULL reset",
     "resetFullClear": "⏮ Reset + formulas cleared",
     "modeChanged": "Mode: {mode}",
+    "presetApplied": "Scenario: {preset}",
     "gargantuaPreset": "Gargantua view active — edge-on disk, strong lensing"
+  },
+  "modePresets": {
+    "bh_realistic": "Realistic BH",
+    "gargantua_disk": "Gargantua · disk",
+    "theory_horizon": "Horizon theories",
+    "binary_gw150914": "Binary GW150914",
+    "cosmo_planck": "Planck cosmology",
+    "deep_field": "Deep universe",
+    "multiverse_omega": "Multiverse Ω",
+    "string_cosmic": "Cosmic strings",
+    "higgs_field": "Higgs field"
   },
   "experiment": {
     "title": "Experiment result"

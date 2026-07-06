@@ -1194,16 +1194,22 @@
         left: 50%;
         transform: translateX(-50%);
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
         background: rgba(4, 12, 32, 0.88);
         border: 1px solid rgba(100, 180, 255, 0.3);
         border-radius: 10px;
-        padding: 4px 8px 4px 10px;
+        padding: 6px 10px;
         z-index: 12;
         max-width: min(720px, calc(100vw - 24px));
         pointer-events: auto;
         backdrop-filter: blur(8px);
+      }
+      .mode-picker-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .mode-picker-label {
         font-size: 9px;
@@ -1243,6 +1249,19 @@
         border-color: rgba(140, 200, 255, 0.55);
         color: #fff;
         font-weight: 600;
+      }
+      .mode-preset-chip {
+        border-color: rgba(120, 200, 160, 0.28);
+        color: #88ccaa;
+      }
+      .mode-preset-chip:hover {
+        background: rgba(30, 90, 70, 0.45);
+        color: #d0ffe8;
+      }
+      .mode-preset-chip.active {
+        background: rgba(40, 120, 90, 0.5);
+        border-color: rgba(120, 255, 180, 0.55);
+        color: #e8fff4;
       }
       #ux-dock {
         position: fixed;
@@ -1398,8 +1417,14 @@
       <kbd>?</kbd> guía · <kbd>ℹ️</kbd> explicación del modo activo · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausar · zoom al BH = ver teoría · Tour 60s en controles
     </div>
     <div id="mode-picker">
-      <span class="mode-picker-label" id="mode-picker-label">Modo</span>
-      <div id="mode-picker-chips" class="mode-picker-chips"></div>
+      <div class="mode-picker-row">
+        <span class="mode-picker-label" id="mode-preset-label">Escenarios</span>
+        <div id="mode-preset-chips" class="mode-picker-chips"></div>
+      </div>
+      <div class="mode-picker-row">
+        <span class="mode-picker-label" id="mode-picker-label">Modo</span>
+        <div id="mode-picker-chips" class="mode-picker-chips"></div>
+      </div>
     </div>
     <nav id="ux-dock" aria-label="Acciones rápidas"></nav>
     <aside id="mode-explainer" class="collapsed" aria-label="Explicación del modo activo" aria-expanded="false">

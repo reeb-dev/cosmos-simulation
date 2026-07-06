@@ -313,6 +313,7 @@ export class SimulationModeManager {
     }
 
     this.ctx.cameraLife?.resetIdle?.();
+    this.ctx.modePicker?.setActivePreset?.(null);
     this.updateHudLabel(mode);
     this.ctx.guiSync?.();
     this.ctx.adaptGuiToMode?.(mode.id);

@@ -481,7 +481,7 @@ function animate(now) {
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
   if (bh.lensedHalos) {
-    bh.lensedHalos.visible = mode !== 'gargantua';
+    bh.lensedHalos.visible = !isAltScene && !isBinary && (mode === 'black_hole' || mode === 'gargantua');
     const haloMul = profile.haloStrengthMul ?? 1.0;
     for (const halo of bh.lensedHalos.children) {
       const mat = halo.userData.haloMat;
@@ -502,6 +502,15 @@ function animate(now) {
     bh.photonRingMat.opacity = isGargantuaMode ? 0.35 : ringBase + Math.sin(animTime * 1.8) * 0.04;
     bh.photonRing.visible = !isAltScene && !isBinary && cameraImmersion < 0.75;
     if (bh.innerGlow) bh.innerGlow.visible = !isGargantuaMode && bh.photonRing.visible;
+  }
+  if (bh.transverseBarrier) {
+    const showBarrier = !isAltScene && !isBinary && (mode === 'black_hole' || mode === 'gargantua');
+    bh.transverseBarrier.visible = showBarrier && cameraImmersion < 0.82;
+    if (bh.transverseBarrierMat) {
+      bh.transverseBarrierMat.uniforms.time.value = animTime;
+      bh.transverseBarrierMat.uniforms.spin.value = engine.universe.spin;
+      bh.transverseBarrierMat.uniforms.intensity.value = mode === 'gargantua' ? 1.45 : 1.0;
+    }
   }
   horizonMat.uniforms.time.value = animTime;
   const visual = getHorizonVisual(horizonSim.theoryId);

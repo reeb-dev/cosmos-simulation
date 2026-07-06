@@ -13,6 +13,7 @@ export default {
     "title": "¿Qué hay dentro del agujero negro?",
     "tagline": "Motor híbrido Schwarzschild + Friedmann + N-cuerpos · Teorías del horizonte",
     "modeLabel": "Modo:",
+    "presetLabel": "Escenarios",
     "seed": "Semilla"
   },
   "helpBar": "<kbd>?</kbd> guía · <kbd>I</kbd> modo · <kbd>📊</kbd> investigación · <kbd>V</kbd> vista · <kbd>G</kbd> controles · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausa",
@@ -491,6 +492,7 @@ export default {
   "gui": {
     "title": "Controles",
     "modeFolder": "Modo de simulación",
+    "modePresets": "Escenarios de prueba",
     "scene": "Escena",
     "modeHint": "Controles para: {mode}",
     "featuredFolder": "Teorías destacadas",
@@ -699,7 +701,19 @@ export default {
     "resetFull": "⏮ Reset TOTAL",
     "resetFullClear": "⏮ Reset + borrar fórmulas",
     "modeChanged": "Modo: {mode}",
+    "presetApplied": "Escenario: {preset}",
     "gargantuaPreset": "Vista Gargantua activada — disco de canto, lensing fuerte"
+  },
+  "modePresets": {
+    "bh_realistic": "BH realista",
+    "gargantua_disk": "Gargantua · disco",
+    "theory_horizon": "Teorías horizonte",
+    "binary_gw150914": "Binario GW150914",
+    "cosmo_planck": "Cosmología Planck",
+    "deep_field": "Universo a escala",
+    "multiverse_omega": "Multiverso Ω",
+    "string_cosmic": "Cuerdas cósmicas",
+    "higgs_field": "Campo Higgs"
   },
   "experiment": {
     "title": "Resultado del experimento"

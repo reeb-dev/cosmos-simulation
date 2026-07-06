@@ -21,6 +21,8 @@ export function applyStaticUi() {
 
   const modePickerLabel = document.getElementById('mode-picker-label');
   if (modePickerLabel) modePickerLabel.textContent = t('hud.modeLabel').replace(':', '');
+  const modePresetLabel = document.getElementById('mode-preset-label');
+  if (modePresetLabel) modePresetLabel.textContent = t('hud.presetLabel');
 
   const guideToggle = document.getElementById('guide-toggle');
   const guidePanel = document.getElementById('guide-panel');

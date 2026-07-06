@@ -7,6 +7,7 @@ import { SIMULATION_MODES, MODE_IDS, FEATURED_THEORIES, PHYSICS_BREAK_THEORIES, 
 import { EXPERIMENTS } from '../lab/theory-lab.js';
 import { FORMULA_PRESETS, createCustomFormula, saveCustomFormulas, clearCustomFormulasStorage } from '../lab/custom-formula.js';
 import { applyGargantuaPreset } from '../physics/gargantua-preset.js';
+import { MODE_PRESETS, getModePresetLabel, applyModePreset } from '../physics/mode-presets.js';
 function buildTheoryOptions() {
   const opts = {};
   for (const id of THEORY_IDS) {
@@ -148,6 +149,15 @@ export function createMasterGui(ctx) {
       syncFromUniverse();
     },
   }, 'viewDeepField').name(t('gui.viewUniverseAtScale'));
+
+  const presetsFolder = modeFolder.addFolder(t('gui.modePresets'));
+  folders.presets = presetsFolder;
+  for (const preset of MODE_PRESETS) {
+    presetsFolder.add({
+      launch: () => applyModePreset(ctx, preset.id),
+    }, 'launch').name(`${preset.icon} ${getModePresetLabel(preset.id)}`);
+  }
+  presetsFolder.open();
 
   const modeHint = { hint: '' };
   controllers.modeHint = modeFolder.add(modeHint, 'hint').name(' ').disable();
