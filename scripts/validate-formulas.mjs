@@ -65,6 +65,30 @@ check('photon_sphere 1.5×rs', Math.abs(photonF.display - 1.5) < 1e-6);
 const hawkingF = FORMULA_REGISTRY.hawking_temperature.compute(ctx);
 check('hawking_temperature', Math.abs(hawkingF.value - refs.hawkingT) / refs.hawkingT < 1e-6);
 
+const dMdtF = FORMULA_REGISTRY.hawking_mass_loss_rate.compute(ctx);
+const LF = FORMULA_REGISTRY.hawking_luminosity.compute(ctx);
+check('hawking_luminosity = c² dM/dt', Math.abs(LF.value - dMdtF.value * C ** 2) / LF.value < 1e-9);
+
+const tEvapF = FORMULA_REGISTRY.hawking_lifetime.compute(ctx);
+const pageF = FORMULA_REGISTRY.hawking_page_time.compute(ctx);
+check('hawking_page_time = t_evap/10', Math.abs(pageF.value - tEvapF.value / 10) / tEvapF.value < 1e-9);
+
+const peakF = FORMULA_REGISTRY.hawking_peak_wavelength.compute(ctx);
+check('hawking_peak_wavelength Wien', Math.abs(peakF.value * refs.hawkingT - 2.898e-3) / 2.898e-3 < 1e-6);
+
+const areaF = FORMULA_REGISTRY.hawking_horizon_area.compute(ctx);
+check('hawking_horizon_area 4π rₛ²', Math.abs(areaF.value - 4 * Math.PI * rs ** 2) / areaF.value < 1e-9);
+
+const boundF = FORMULA_REGISTRY.bekenstein_bound.compute(ctx);
+check('bekenstein_bound saturated', Math.abs(boundF.display - 1) < 1e-6, `S/S_max=${boundF.display}`);
+
+const kappaF = FORMULA_REGISTRY.hawking_surface_gravity.compute(ctx);
+check('hawking_surface_gravity → T_H', Math.abs(kappaF.display - refs.hawkingT) / refs.hawkingT < 1e-6);
+
+const bitsF = FORMULA_REGISTRY.hawking_information_bits.compute(ctx);
+const Sref = FORMULA_REGISTRY.bekenstein_entropy.compute(ctx);
+check('hawking_information_bits', Math.abs(bitsF.value - Sref.value / (K_B * Math.LN2)) / bitsF.value < 1e-9);
+
 const Hf = FORMULA_REGISTRY.friedmann_H.compute(ctx);
 check('friedmann_H', Math.abs(Hf.value - refs.H) < 0.01 && Math.abs(Hf.value - Hf.simValue) < 0.01);
 
@@ -125,7 +149,7 @@ const fQnm = FORMULA_REGISTRY.qnm_frequency.compute({ ...ctx, mergedMassSolar: 5
 check('qnm_frequency', fQnm.value > 10 && fQnm.value < 1e5, `${fQnm.value} Hz`);
 
 const formulaCount = Object.values(FORMULA_REGISTRY).filter((f) => f.enabled).length;
-check('formula registry count', formulaCount >= 28, `${formulaCount} fórmulas`);
+check('formula registry count', formulaCount >= 36, `${formulaCount} fórmulas`);
 
 console.log('\n=== Formula Validation ===\n');
 for (const p of passed) {

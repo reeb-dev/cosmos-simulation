@@ -3,7 +3,7 @@
 Revisión completa del registro (`src/physics/formula-registry.js`) frente a fórmulas documentadas, usadas en simulación y validadas en `scripts/validate-formulas.mjs`.
 
 **Fecha:** julio 2026  
-**Total en registro:** 29 fórmulas habilitadas (+ custom en laboratorio)
+**Total en registro:** 36 fórmulas habilitadas (+ custom en laboratorio)
 
 ---
 
@@ -12,7 +12,7 @@ Revisión completa del registro (`src/physics/formula-registry.js`) frente a fó
 | Área | Estado | Notas |
 |------|--------|-------|
 | Agujero negro (Schwarzschild/Kerr) | ✅ Completo | `kerr_isco` corregido (bug ×2 histórico) |
-| Hawking / cuántica | ✅ Completo | T_H, t_evap, entropía Bekenstein |
+| Hawking / cuántica | ✅ Completo | T_H, dM/dt, L, t_evap, τ_Page, S_BH, bits, cota Bekenstein, κ, λ_peak |
 | Cosmología ΛCDM | ✅ Completo | H, q, ρ_c, D_H, z, d_c, edad |
 | Lensing | ⚠️ Parcial | Deflexión débil registrada; shader usa heurística |
 | Disco de acreción | ✅ Añadido | `disk_temperature` Shakura-Sunyaev pedagógico |
@@ -21,7 +21,22 @@ Revisión completa del registro (`src/physics/formula-registry.js`) frente a fó
 
 ---
 
-## Fórmulas añadidas en esta auditoría
+## Fórmulas Hawking añadidas (julio 2026)
+
+| ID | Fórmula | Referencia |
+|----|---------|------------|
+| `hawking_mass_loss_rate` | \|dM/dt\| = ℏc⁴/(15360πG²M²) | Hawking 1974 |
+| `hawking_luminosity` | L = c²\|dM/dt\| | Hawking 1974 |
+| `hawking_page_time` | τ_Page = t_evap/10 | Page 1993 |
+| `hawking_horizon_area` | A = 4πrₛ² | Hawking 1974 |
+| `hawking_peak_wavelength` | λ_peak = b/T_H (Wien) | Planck / Hawking |
+| `hawking_surface_gravity` | κ = c⁴/(4GM), T_H = ℏκ/(2πck_B) | Hawking 1974 |
+| `hawking_information_bits` | N = S/(k_B ln 2) | Bekenstein-Hawking |
+| `bekenstein_bound` | S ≤ 2πk_B E R/(ℏc) | Bekenstein 1981 |
+
+---
+
+## Fórmulas añadidas en auditoría anterior
 
 | ID | Fórmula | Uso en el proyecto |
 |----|---------|-------------------|
@@ -39,7 +54,9 @@ Revisión completa del registro (`src/physics/formula-registry.js`) frente a fó
 
 - `schwarzschild_rs`, `isco`, `photon_sphere`, `kerr_isco`
 - `time_dilation`, `tidal_force`
-- `hawking_temperature`, `hawking_lifetime`, `bekenstein_entropy`
+- `hawking_temperature`, `hawking_lifetime`, `hawking_mass_loss_rate`, `hawking_luminosity`
+- `hawking_page_time`, `hawking_horizon_area`, `hawking_peak_wavelength`, `hawking_surface_gravity`
+- `hawking_information_bits`, `bekenstein_entropy`, `bekenstein_bound`
 - `lensing_deflection` (campo débil; no es el lensing en pantalla)
 - `friedmann_H`, `friedmann_q`, `critical_density`, `hubble_distance`
 - `redshift`, `comoving_distance`, `universe_age`

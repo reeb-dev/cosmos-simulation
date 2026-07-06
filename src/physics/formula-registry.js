@@ -125,9 +125,117 @@ export const FORMULA_REGISTRY = {
     category: 'cuantica',
     enabled: true,
     compute: (ctx) => {
-      const M = ctx.massKg;
-      const t = (5120 * Math.PI * G ** 2 * M ** 3) / (HBAR * C ** 4);
+      const t = hawkingLifetimeSec(ctx.massKg);
       return { value: t, unit: 's', display: t / (3.156e7 * 1e9), displayUnit: 'Gyr' };
+    },
+  },
+  hawking_mass_loss_rate: {
+    id: 'hawking_mass_loss_rate',
+    name: 'Pérdida de masa (Hawking)',
+    latex: '\\left|\\frac{dM}{dt}\\right| = \\frac{\\hbar c^4}{15360\\pi G^2 M^2}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const M = ctx.massKg;
+      const dMdt = (HBAR * C ** 4) / (15360 * Math.PI * G ** 2 * M ** 2);
+      return { value: dMdt, unit: 'kg/s', display: dMdt * 3.156e16, displayUnit: 'kg/Gyr' };
+    },
+  },
+  hawking_luminosity: {
+    id: 'hawking_luminosity',
+    name: 'Luminosidad Hawking',
+    latex: 'L = c^2\\left|\\frac{dM}{dt}\\right| = \\frac{\\hbar c^6}{15360\\pi G^2 M^2}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const M = ctx.massKg;
+      const L = (HBAR * C ** 6) / (15360 * Math.PI * G ** 2 * M ** 2);
+      return { value: L, unit: 'W' };
+    },
+  },
+  hawking_page_time: {
+    id: 'hawking_page_time',
+    name: 'Tiempo de Page',
+    latex: '\\tau_{Page} = \\frac{512\\pi G^2 M^3}{\\hbar c^4} = \\frac{t_{evap}}{10}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const tau = hawkingLifetimeSec(ctx.massKg) / 10;
+      return { value: tau, unit: 's', display: tau / (3.156e7 * 1e9), displayUnit: 'Gyr' };
+    },
+  },
+  hawking_horizon_area: {
+    id: 'hawking_horizon_area',
+    name: 'Área del horizonte',
+    latex: 'A = 4\\pi r_s^2 = \\frac{16\\pi G^2 M^2}{c^4}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const A = horizonAreaM2(ctx.massKg);
+      const rs = schwarzschildRadius(ctx.massKg);
+      return { value: A, unit: 'm²', display: A / (rs * rs), displayUnit: '× rₛ²' };
+    },
+  },
+  hawking_peak_wavelength: {
+    id: 'hawking_peak_wavelength',
+    name: 'Longitud de onda pico (Wien)',
+    latex: '\\lambda_{peak} = \\frac{b}{T_H},\\; b \\approx 2{,}898\\times10^{-3}\\,\\mathrm{m\\cdot K}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const T = hawkingTemperatureK(ctx.massKg);
+      const lambda = 2.898e-3 / T;
+      return { value: lambda, unit: 'm', display: lambda * 1e9, displayUnit: 'nm' };
+    },
+  },
+  hawking_surface_gravity: {
+    id: 'hawking_surface_gravity',
+    name: 'Gravedad superficial (horizonte)',
+    latex: '\\kappa = \\frac{c^4}{4GM},\\quad T_H = \\frac{\\hbar\\kappa}{2\\pi c k_B}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const kappa = (C ** 4) / (4 * G * ctx.massKg);
+      const TfromKappa = (HBAR * kappa) / (2 * Math.PI * C * K_B);
+      return {
+        value: kappa,
+        unit: 'm/s²',
+        simValue: TfromKappa,
+        display: TfromKappa,
+        displayUnit: 'K (vía κ)',
+      };
+    },
+  },
+  hawking_information_bits: {
+    id: 'hawking_information_bits',
+    name: 'Bits informacionales (Hawking)',
+    latex: 'N_{bits} = \\frac{S_{BH}}{k_B \\ln 2}',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const S = bekensteinHawkingEntropy(ctx.massKg);
+      const bits = S / (K_B * Math.LN2);
+      return { value: bits, unit: 'bits', display: bits / 1e77, displayUnit: '×10⁷⁷ bits' };
+    },
+  },
+  bekenstein_bound: {
+    id: 'bekenstein_bound',
+    name: 'Cota de Bekenstein',
+    latex: 'S \\leq \\frac{2\\pi k_B E R}{\\hbar c},\\quad E = Mc^2,\\; R = r_s',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const rs = schwarzschildRadius(ctx.massKg);
+      const E = ctx.massKg * C ** 2;
+      const Smax = (2 * Math.PI * K_B * E * rs) / (HBAR * C);
+      const S = bekensteinHawkingEntropy(ctx.massKg);
+      return {
+        value: Smax,
+        unit: 'J/K',
+        display: S / Smax,
+        displayUnit: 'S/S_max',
+        simValue: S,
+      };
     },
   },
   lensing_deflection: {
@@ -263,9 +371,7 @@ export const FORMULA_REGISTRY = {
     category: 'cuantica',
     enabled: true,
     compute: (ctx) => {
-      const rs = schwarzschildRadius(ctx.massKg);
-      const A = 4 * Math.PI * rs * rs;
-      const S = (K_B * C ** 3 * A) / (4 * G * HBAR);
+      const S = bekensteinHawkingEntropy(ctx.massKg);
       return { value: S, unit: 'J/K', display: S / K_B, displayUnit: '×k_B' };
     },
   },
@@ -408,6 +514,23 @@ function safeMassKg(ctx) {
 function safeRadiusVis(ctx, factor, minRsMul = 1.001) {
   const rs = safeRs(ctx);
   return Math.max(safeNum(ctx.orbitR ?? ctx.probeR, rs * factor), rs * minRsMul);
+}
+
+function hawkingTemperatureK(massKg) {
+  return (HBAR * C ** 3) / (8 * Math.PI * G * massKg * K_B);
+}
+
+function hawkingLifetimeSec(massKg) {
+  return (5120 * Math.PI * G ** 2 * massKg ** 3) / (HBAR * C ** 4);
+}
+
+function horizonAreaM2(massKg) {
+  const rs = schwarzschildRadius(massKg);
+  return 4 * Math.PI * rs * rs;
+}
+
+function bekensteinHawkingEntropy(massKg) {
+  return (K_B * C ** 3 * horizonAreaM2(massKg)) / (4 * G * HBAR);
 }
 
 export function buildFormulaContext(universe, horizonSim, engine, binarySim = null) {

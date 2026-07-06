@@ -42,7 +42,7 @@ for (const id of MODE_IDS) {
 if (THEORY_IDS.length >= 30) ok('horizon theories', `${THEORY_IDS.length} theories`);
 else fail('horizon theories', `${THEORY_IDS.length}`);
 
-for (const id of ['friedmann_H', 'schwarzschild_rs', 'hawking_temperature', 'gw_strain_inspiral', 'gw_energy_loss', 'disk_temperature', 'qnm_frequency', 'reduced_mass', 'kerr_isco']) {
+for (const id of ['friedmann_H', 'schwarzschild_rs', 'hawking_temperature', 'hawking_luminosity', 'hawking_page_time', 'bekenstein_bound', 'gw_strain_inspiral', 'gw_energy_loss', 'disk_temperature', 'qnm_frequency', 'reduced_mass', 'kerr_isco']) {
   const f = FORMULA_REGISTRY[id];
   if (!f?.compute) fail(`formula ${id}`, 'missing');
   else {
@@ -53,7 +53,7 @@ for (const id of ['friedmann_H', 'schwarzschild_rs', 'hawking_temperature', 'gw_
 }
 
 const enabledFormulas = Object.values(FORMULA_REGISTRY).filter((f) => f.enabled).length;
-if (enabledFormulas >= 28) ok('formula registry coverage', `${enabledFormulas} enabled`);
+if (enabledFormulas >= 36) ok('formula registry coverage', `${enabledFormulas} enabled`);
 else fail('formula registry coverage', `only ${enabledFormulas}`);
 
 try {
