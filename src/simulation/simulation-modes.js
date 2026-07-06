@@ -29,7 +29,7 @@ export const SIMULATION_MODES = {
     id: 'gargantua',
     name: 'Gargantua (Interestelar)',
     subtitle: 'Disco de canto · lensing fuerte · anillo de fotones · estilo película',
-    camera: { x: 0.5, y: 2.4, z: 98, tx: 0, ty: 0, tz: 0 },
+    camera: { x: 0.35, y: 0.55, z: 72, tx: 0, ty: 0, tz: 0 },
     maxDistance: 350,
     minDistanceFactor: 0.28,
     fogDensity: 0.0001,

@@ -349,6 +349,10 @@ function animate(now) {
   if (bh.diskMat.uniforms.thinness) {
     bh.diskMat.uniforms.thinness.value = profile.diskThinness ?? 0.85;
   }
+  if (bh.diskMat.uniforms.volumetric) {
+    const vol = profile.diskVolumetric ?? (mode === 'gargantua' ? 1.0 : 0.35);
+    bh.diskMat.uniforms.volumetric.value = vol;
+  }
   binarySim.realismMode = realism;
   gwWaves.setRealism?.(realism);
   starfield.setRealism?.(realism);
@@ -525,7 +529,17 @@ function animate(now) {
   updateResearchPanel(appCtx);
 
   controls.update();
-  lensing.update(camera, bhWorldPos, engine.universe.showLensing && cameraImmersion < 0.8 && !isAltScene && !isBinary && !isDeepField, engine.universe.rsVis, engine.universe.spin, profile.lensStrengthMul);
+  const isGargantua = mode === 'gargantua';
+  const lensImmersion = isGargantua ? 0.94 : 0.8;
+  lensing.update(
+    camera,
+    bhWorldPos,
+    engine.universe.showLensing && cameraImmersion < lensImmersion && !isAltScene && !isBinary && !isDeepField,
+    engine.universe.rsVis,
+    engine.universe.spin,
+    profile.lensStrengthMul,
+    isGargantua,
+  );
   lensing.render();
 }
 
