@@ -6,7 +6,7 @@ import { HORIZON_THEORIES, THEORY_IDS } from '../simulation/horizon-theories.js'
 import { SIMULATION_MODES, MODE_IDS, FEATURED_THEORIES, PHYSICS_BREAK_THEORIES, getModeName } from '../simulation/simulation-modes.js';
 import { EXPERIMENTS } from '../lab/theory-lab.js';
 import { FORMULA_PRESETS, createCustomFormula, saveCustomFormulas, clearCustomFormulasStorage } from '../lab/custom-formula.js';
-import { showResetToast } from './lab-panel.js';
+import { applyGargantuaPreset } from '../physics/gargantua-preset.js';
 
 function buildTheoryOptions() {
   const opts = {};
@@ -172,6 +172,9 @@ export function createMasterGui(ctx) {
     ctx.universe.spin = v;
     ctx.onRsChange();
   });
+  controllers.gargantua = bh.add({
+    gargantua: () => applyGargantuaPreset(ctx),
+  }, 'gargantua').name(t('gui.gargantuaPreset'));
   bh.open();
 
   const binaryState = {
@@ -298,6 +301,7 @@ export function createMasterGui(ctx) {
   horizon.open();
 
   const realismLabels = {
+    [t('gui.realismGargantua')]: 'gargantua',
     [t('gui.realismRealistic')]: 'realistic',
     [t('gui.realismStandard')]: 'standard',
     [t('gui.realismCinematic')]: 'cinematic',
@@ -509,6 +513,7 @@ export function createMasterGui(ctx) {
     setFolderTitle(folders.bh, t('gui.bh'));
     controllers.mass?.name(t('gui.mass'));
     controllers.spin?.name(t('gui.spin'));
+    controllers.gargantua?.name(t('gui.gargantuaPreset'));
     setFolderTitle(folders.binary, t('gui.binary'));
     setFolderTitle(folders.cosmo, t('gui.cosmo'));
     controllers.cosmicScale?.name(t('gui.cosmicScale'));

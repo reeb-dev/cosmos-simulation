@@ -50,6 +50,7 @@ import { createResearchGui } from './ui/research-panel.js';
 import { createClassroomMode } from './ui/classroom-mode.js';
 import { t } from './i18n/i18n.js';
 import { getRealismProfile } from './physics/realism-profiles.js';
+import { applyGargantuaPreset } from './physics/gargantua-preset.js';
 
 async function bootstrap() {
 const simulationSeed = new SimulationSeed();
@@ -196,6 +197,7 @@ const appCtx = {
   onTheoryChange: (id) => applyTheoryVisual(id),
   onExperiment: (id, result) => updateExperimentModal(result),
   onVisualUpdate: onRsChange,
+  applyGargantuaPreset: () => applyGargantuaPreset(appCtx),
   clearCustomFormulas: () => {
     customFormulas.length = 0;
     theoryLab.setCustomFormulas([]);
@@ -328,10 +330,17 @@ function animate(now) {
   const profile = getRealismProfile(realism);
   const cosmo = engine.universe.cosmology;
 
-  scene.fog.density = isBinary || isDeepField ? profile.fogDensity : profile.fogDensity * 0.6;
+  scene.fog.density = isBinary || isDeepField
+    ? profile.fogDensity
+    : mode === 'black_hole'
+      ? profile.fogDensity * 0.28
+      : profile.fogDensity * 0.6;
   renderer.toneMappingExposure = profile.toneExposure;
   if (bh.diskMat.uniforms.diskIntensity) {
     bh.diskMat.uniforms.diskIntensity.value = profile.diskIntensity;
+  }
+  if (bh.diskMat.uniforms.thinness) {
+    bh.diskMat.uniforms.thinness.value = profile.diskThinness ?? 0.85;
   }
   binarySim.realismMode = realism;
   gwWaves.setRealism?.(realism);
@@ -448,17 +457,23 @@ function animate(now) {
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
   if (bh.lensedHalos) {
+    const haloMul = profile.haloStrengthMul ?? 1.0;
     for (const halo of bh.lensedHalos.children) {
       const mat = halo.userData.haloMat;
       if (mat) {
         mat.uniforms.time.value = animTime;
         mat.uniforms.spin.value = engine.universe.spin;
         mat.uniforms.exteriorTint.value.copy(bh.diskMat.uniforms.exteriorTint.value);
+        if (mat.uniforms.thinness) mat.uniforms.thinness.value = profile.diskThinness ?? 0.9;
+        if (mat.uniforms.haloStrength) {
+          mat.uniforms.haloStrength.value = (halo.userData.baseHaloStrength ?? 0.3) * haloMul;
+        }
       }
     }
   }
   if (bh.photonRingMat) {
-    bh.photonRingMat.opacity = 0.82 + Math.sin(animTime * 1.8) * 0.06;
+    const ringBase = profile.photonRingOpacity ?? 0.9;
+    bh.photonRingMat.opacity = ringBase + Math.sin(animTime * 1.8) * 0.04;
     bh.photonRing.visible = !isAltScene && !isBinary && cameraImmersion < 0.75;
   }
   horizonMat.uniforms.time.value = animTime;

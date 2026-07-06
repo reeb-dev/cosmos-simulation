@@ -470,6 +470,7 @@ export default {
     "bh": "Agujero negro",
     "mass": "Masa (M☉)",
     "spin": "Spin Kerr",
+    "gargantuaPreset": "Vista Gargantua (Interstellar)",
     "binary": "Choque binario",
     "m1": "M₁ (M☉)",
     "m2": "M₂ (M☉)",
@@ -497,6 +498,7 @@ export default {
     "lensing": "Lensing",
     "life": "Universo vivo",
     "realism": "Realismo",
+    "realismGargantua": "Gargantua (Interstellar)",
     "realismRealistic": "Realista (Planck/LIGO)",
     "realismStandard": "Estándar",
     "realismCinematic": "Cinemático",
@@ -666,7 +668,8 @@ export default {
     "resetSim": "↺ Simulación reiniciada",
     "resetFull": "⏮ Reset TOTAL",
     "resetFullClear": "⏮ Reset + borrar fórmulas",
-    "modeChanged": "Modo: {mode}"
+    "modeChanged": "Modo: {mode}",
+    "gargantuaPreset": "Vista Gargantua activada — disco de canto, lensing fuerte"
   },
   "experiment": {
     "title": "Resultado del experimento"

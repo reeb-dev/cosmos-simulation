@@ -10,10 +10,10 @@ export const SIMULATION_MODES = {
     id: 'black_hole',
     name: 'Agujero negro',
     subtitle: 'Motor híbrido Schwarzschild + Friedmann · Teorías del horizonte',
-    camera: { x: 1.5, y: 11, z: 118, tx: 0, ty: 0, tz: 0 },
+    camera: { x: 0.5, y: 2.6, z: 100, tx: 0, ty: 0, tz: 0 },
     maxDistance: 400,
     minDistanceFactor: 0.35,
-    fogDensity: 0.0008,
+    fogDensity: 0.00025,
     scene: {
       exterior: true,
       horizon: true,

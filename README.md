@@ -4,7 +4,11 @@ Simulación interactiva 3D que combina un **motor híbrido** (Schwarzschild + Fr
 
 **Repositorio:** [github.com/reeb-dev/cosmos-simulation](https://github.com/reeb-dev/cosmos-simulation)
 
-**Demo en vivo:** [cosmos-simulation.vercel.app](https://cosmos-simulation.vercel.app) *(se actualiza tras el deploy en Vercel)*
+**Demo en vivo:**
+- [cosmos-simulation.vercel.app](https://cosmos-simulation.vercel.app) — Vercel (principal)
+- [reeb-dev.github.io/cosmos-simulation](https://reeb-dev.github.io/cosmos-simulation/) — GitHub Pages
+
+> **Alcance y utilidad:** ver [docs/ALCANCE.md](docs/ALCANCE.md) — para qué sirve, límites honestos y casos de uso.
 
 > **Vista previa:** aún no hay GIF en el repo. Puedes generar uno con las instrucciones al final de este README y guardarlo en `docs/preview.gif`.
 
@@ -29,8 +33,29 @@ Abre [http://localhost:5173](http://localhost:5173).
 | `npm run build` | Compila a `dist/` |
 | `npm run preview` | Previsualiza la build local |
 | `npm run audit` | Auditoría estática (modos, i18n, fórmulas) — 31 checks |
-| `npm run validate` | Validación numérica de fórmulas vs referencias analíticas |
+| `npm run validate` | Validación numérica de fórmulas vs referencias analíticas — 28 checks |
+| `npm test` | Ejecuta audit + validate + build (59 checks totales) |
 | `npm run deploy` | Alias de `vite build` (sube con Vercel CLI o el dashboard) |
+
+## Alcance del proyecto
+
+Simulador web para **enseñanza, divulgación e investigación exploratoria** de agujeros negros y cosmología. No reemplaza códigos de física revisados por pares (SXS, CAMB, LOSC).
+
+| Área | Qué ofrece |
+|------|------------|
+| **8 modos** | Agujero negro, multiverso, cosmología, campo profundo, binario GW, Higgs, cuerdas, selector de teorías |
+| **39 teorías** | Singularidad, firewall, ER=EPR, fuzzball, LQG… + ficción etiquetada ★/★★ |
+| **Física validada** | Friedmann ΛCDM, Schwarzschild, Hawking, strain GW (Peters), 20+ fórmulas en laboratorio |
+| **Investigación** | CSV/JSON, informes validación/publicación, barridos H₀ y M_BH, URL reproducible |
+| **Datos reales (pedagógicos)** | LIGO GW150914, SDSS (submuestra), CMB Planck |
+| **Vista Gargantua** | Preset Interstellar: disco de canto, lensing fuerte, anillo de fotones |
+
+Guía completa: **[docs/ALCANCE.md](docs/ALCANCE.md)** · Exportación: **[docs/INVESTIGACION.md](docs/INVESTIGACION.md)**
+
+### Vista Gargantua (Interstellar)
+
+1. Panel **Agujero negro → Vista Gargantua (Interstellar)** — configura masa 100 M☉, spin 0.99, lensing y cámara de canto.
+2. O **Simulación → Realismo → Gargantua (Interstellar)** solo para el perfil visual.
 
 ## Tour guiado (60 s)
 
@@ -72,13 +97,15 @@ npx vercel --prod --yes
 
 ### GitHub Pages (CI automático)
 
-Cada push a `main` despliega vía [GitHub Actions](.github/workflows/deploy-pages.yml). Activa **Pages** en el repo: Settings → Pages → Source: **GitHub Actions**.
+Cada push a `main` ejecuta `npm test` (audit + validate + build) y despliega vía [GitHub Actions](.github/workflows/deploy-pages.yml).
+
+URL: **https://reeb-dev.github.io/cosmos-simulation/**
+
+Si el deploy falla, verifica Settings → Pages → Source: **GitHub Actions**.
 
 ```bash
 npm run deploy:gh   # despliegue manual alternativo
 ```
-
-Requiere `gh-pages` y ajusta `base` en `vite.config.js` si el repo no está en la raíz del dominio.
 
 ## Roadmap y sugerencias
 
@@ -275,13 +302,17 @@ CosmosSim.sweepH0({ points: 15 }).then(console.table)
 - `src/lab/theory-lab.js` — experimentos del laboratorio
 - `scripts/audit.mjs` — auditoría estática (`npm run audit`)
 - `scripts/validate-formulas.mjs` — validación numérica (`npm run validate`)
+- `docs/ALCANCE.md` — alcance, utilidad, límites y casos de uso
 - `docs/INVESTIGACION.md` — guía de exportación, formatos y cómo subir archivos
+- `src/physics/gargantua-preset.js` — preset visual Gargantua (Interstellar)
 
 ## Roadmap de realismo
 
 ### Implementado (v1.2+)
 
+- Preset **Vista Gargantua (Interstellar)**: disco ultradelgado, anillo de fotones, lensing fuerte
 - Modo **Universo a escala** (`deep_field`): campo profundo, SDSS, CMB Planck, difracción estelar
+- Suite de tests: `npm test` (59 checks: audit + validate + build)
 - Auditoría automática (`npm run audit`, `npm run validate`) — fórmulas y i18n
 - Edad del universo integrada ΛCDM coherente con HUD y laboratorio
 - Informe HTML de publicación y comparador LIGO GW150914

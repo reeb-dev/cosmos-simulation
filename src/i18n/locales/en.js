@@ -470,6 +470,7 @@ export default {
     "bh": "Black hole",
     "mass": "Mass (M☉)",
     "spin": "Kerr spin",
+    "gargantuaPreset": "Gargantua view (Interstellar)",
     "binary": "Binary merger",
     "m1": "M₁ (M☉)",
     "m2": "M₂ (M☉)",
@@ -497,6 +498,7 @@ export default {
     "lensing": "Lensing",
     "life": "Living universe",
     "realism": "Realism",
+    "realismGargantua": "Gargantua (Interstellar)",
     "realismRealistic": "Realistic (Planck/LIGO)",
     "realismStandard": "Standard",
     "realismCinematic": "Cinematic",
@@ -676,7 +678,8 @@ export default {
     "resetSim": "↺ Simulation reset",
     "resetFull": "⏮ FULL reset",
     "resetFullClear": "⏮ Reset + formulas cleared",
-    "modeChanged": "Mode: {mode}"
+    "modeChanged": "Mode: {mode}",
+    "gargantuaPreset": "Gargantua view active — edge-on disk, strong lensing"
   },
   "experiment": {
     "title": "Experiment result"
