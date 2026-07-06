@@ -76,8 +76,8 @@ export class GalaxyCollisionSim {
     if (realismMode != null) this.realismMode = realismMode;
   }
 
-  startCollision() {
-    if (this.phase !== GALAXY_PHASE.IDLE && this.phase !== GALAXY_PHASE.DONE) return;
+  startCollision(force = false) {
+    if (!force && this.phase !== GALAXY_PHASE.IDLE && this.phase !== GALAXY_PHASE.DONE) return;
     this.phase = GALAXY_PHASE.APPROACH;
     this._started = true;
     this._phaseLogged.clear();

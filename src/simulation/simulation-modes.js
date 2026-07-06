@@ -314,9 +314,11 @@ export class SimulationModeManager {
     }
 
     if (s.galaxyCollision) {
+      galaxyCollisionScene?.reset?.();
       this.ctx.galaxyCollisionSim?.reset?.();
       this.ctx.galaxyCollisionSim?.startCollision?.();
-      galaxyCollisionScene?.reset?.();
+      galaxyCollisionScene?.update?.(0, this.ctx.galaxyCollisionSim);
+      this.ctx.galaxyCamLerp = 0;
     }
 
     if (mode.id === 'gargantua' || s.gargantua) {

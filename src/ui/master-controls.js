@@ -97,6 +97,7 @@ function folderDefaultTitles() {
     sim: t('gui.sim'),
     lab: t('gui.lab'),
     binary: t('gui.binary'),
+    galaxy: t('gui.galaxy'),
     reset: t('gui.reset'),
   };
 }
@@ -292,11 +293,13 @@ export function createMasterGui(ctx) {
         m1: 1.0, m2: 1.25, impactParam: 0.5, relativeSpeed: 110,
       });
       ctx.modeManager?.setMode('galaxy_collision');
-      ctx.galaxyCollisionSim?.startCollision();
+      ctx.galaxyCollisionSim?.startCollision(true);
     },
   }, 'milkyAndromeda').name(t('gui.milkyAndromeda'));
   galaxyFolder.add({
     startGalaxy: () => {
+      ctx.galaxyCollisionSim?.reset();
+      ctx.galaxyCollisionScene?.reset?.();
       ctx.modeManager?.setMode('galaxy_collision');
       ctx.galaxyCollisionSim?.configure({
         m1: galaxyState.m1,
@@ -305,7 +308,8 @@ export function createMasterGui(ctx) {
         relativeSpeed: galaxyState.relativeSpeed,
         timeScale: ctx.universe.timeScale,
       });
-      ctx.galaxyCollisionSim?.startCollision();
+      ctx.galaxyCollisionSim?.startCollision(true);
+      ctx.galaxyCollisionScene?.update(0, ctx.galaxyCollisionSim);
     },
   }, 'startGalaxy').name(t('gui.startGalaxyCollision'));
   galaxyFolder.add({
@@ -478,7 +482,7 @@ export function createMasterGui(ctx) {
   ctx.guiSync = syncFromUniverse;
   ctx.guiSyncDefaults = syncToDefaults;
 
-  const TOP_LEVEL_FOLDERS = ['bh', 'cosmo', 'horizon', 'sim', 'lab', 'binary', 'reset'];
+  const TOP_LEVEL_FOLDERS = ['bh', 'cosmo', 'horizon', 'sim', 'lab', 'binary', 'galaxy', 'reset'];
   const SIM_BASIC = new Set(['time', 'paused']);
 
   function setFolderTitle(folder, title) {
@@ -510,6 +514,7 @@ export function createMasterGui(ctx) {
       if (visible) {
         const titleKey = FOLDER_MODE_TITLES[modeId]?.[key];
         setFolderTitle(folders[key], titleKey ? t(titleKey) : defaults[key]);
+        if (key === 'galaxy' && modeId === 'galaxy_collision') folders.galaxy?.open?.();
       }
     }
 
@@ -581,6 +586,7 @@ export function createMasterGui(ctx) {
     controllers.spin?.name(t('gui.spin'));
     controllers.gargantua?.name(t('gui.gargantuaPreset'));
     setFolderTitle(folders.binary, t('gui.binary'));
+    setFolderTitle(folders.galaxy, t('gui.galaxy'));
     setFolderTitle(folders.cosmo, t('gui.cosmo'));
     controllers.cosmicScale?.name(t('gui.cosmicScale'));
     setFolderTitle(folders.horizon, t('gui.horizon'));

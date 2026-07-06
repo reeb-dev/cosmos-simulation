@@ -206,6 +206,7 @@ const appCtx = {
   gwWaves,
   galaxyCollisionSim,
   galaxyCollisionScene,
+  galaxyCamLerp: { get value() { return galaxyCamLerp; }, set value(v) { galaxyCamLerp = v; } },
   bh,
   setMinDistance,
   onRsChange,
@@ -304,6 +305,7 @@ let animTime = 0;
 let prevProbeState = PROBE_STATE.IDLE;
 let prevCameraInside = false;
 let binaryCamLerp = 0;
+let galaxyCamLerp = 0;
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -465,14 +467,14 @@ function animate(now) {
       starfield.update(engine.getScaleFactor(), rawDt, life.vitality, null, realism);
       galaxyField.update(engine.getScaleFactor(), rawDt, cosmo, realism);
 
-      binaryCamLerp = Math.min(1, binaryCamLerp + rawDt * 0.6);
+      galaxyCamLerp = Math.min(1, galaxyCamLerp + rawDt * 0.85);
       const frame = galaxyCollisionSim.getCameraFrame();
       const angle = animTime * 0.08;
-      const camX = Math.sin(angle) * frame.dist * binaryCamLerp;
-      const camZ = Math.cos(angle) * frame.dist * binaryCamLerp;
-      camera.position.x += (camX - camera.position.x) * 0.03;
-      camera.position.y += (frame.height - camera.position.y) * 0.03;
-      camera.position.z += (camZ - camera.position.z) * 0.03;
+      const camX = Math.sin(angle) * frame.dist * galaxyCamLerp;
+      const camZ = Math.cos(angle) * frame.dist * galaxyCamLerp;
+      camera.position.x += (camX - camera.position.x) * 0.05;
+      camera.position.y += (frame.height - camera.position.y) * 0.05;
+      camera.position.z += (camZ - camera.position.z) * 0.05;
       controls.target.set(frame.tx, frame.ty, frame.tz);
     }
   } else {
@@ -481,6 +483,7 @@ function animate(now) {
     deepField.group.visible = false;
     deepField.showScaleBar(false);
     binaryCamLerp = 0;
+    galaxyCamLerp = 0;
     // Ocultar exterior solo por inmersión de cámara, no cuando solo la sonda cruza
     modeManager.applySceneVisibility(cameraImmersion, horizonSim.interiorOpacity, cameraImmersion);
     const extDim = 1 - Math.min(1, cameraImmersion * 1.1);
@@ -546,7 +549,7 @@ function animate(now) {
   lensing.update(
     camera,
     bhWorldPos,
-    engine.universe.showLensing && cameraImmersion < lensImmersion && !isAltScene && !isBinary && !isDeepField,
+    engine.universe.showLensing && cameraImmersion < lensImmersion && !isAltScene && !isBinary && !isDeepField && !isGalaxyCollision,
     engine.universe.rsVis,
     engine.universe.spin,
     profile.lensStrengthMul,

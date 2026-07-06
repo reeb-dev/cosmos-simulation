@@ -140,7 +140,6 @@ export function createGalaxyCollisionScene() {
   }
 
   function reset() {
-    group.visible = false;
     g1.group.visible = true;
     g2.group.visible = true;
     remnant.group.visible = false;
