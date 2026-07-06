@@ -492,6 +492,7 @@ function animate(now) {
   bh.diskMat.uniforms.time.value = animTime * (1 + life.pulse * 0.1);
   if (bh.diskMat.uniforms.spin) bh.diskMat.uniforms.spin.value = engine.universe.spin;
   if (bh.lensedHalos) {
+    bh.lensedHalos.visible = mode !== 'gargantua';
     const haloMul = profile.haloStrengthMul ?? 1.0;
     for (const halo of bh.lensedHalos.children) {
       const mat = halo.userData.haloMat;

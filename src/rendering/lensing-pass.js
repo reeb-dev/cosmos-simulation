@@ -74,53 +74,44 @@ const LensingShader = {
       vec2 toBH = vUv - blackHoleScreenPos;
       float dist = length(toBH);
       vec2 dir = toBH / max(dist, 1e-5);
-      float boost = 1.0 + gargantuaBoost * 1.8;
+      float boost = 1.0 + gargantuaBoost * 0.65;
 
       vec2 uvA = gravLens(vUv, lensStrength * boost);
-      vec2 uvB = gravLens(vUv, lensStrength * 0.68 * boost);
-      vec2 uvC = gravLens(vUv, lensStrength * 0.34 * boost);
-      vec4 col = texture2D(tDiffuse, clamp(uvA, 0.0, 1.0)) * 0.5
-               + texture2D(tDiffuse, clamp(uvB, 0.0, 1.0)) * 0.32
-               + texture2D(tDiffuse, clamp(uvC, 0.0, 1.0)) * 0.18;
+      vec2 uvB = gravLens(vUv, lensStrength * 0.55 * boost);
+      vec4 col = texture2D(tDiffuse, clamp(uvA, 0.0, 1.0)) * 0.62
+               + texture2D(tDiffuse, clamp(uvB, 0.0, 1.0)) * 0.38;
 
-      float shadowRad = rsScreen * 0.52;
-      float shadow = smoothstep(shadowRad * 0.28, shadowRad * 0.88, dist);
+      col = max(col, base * 0.35);
+
+      float shadowRad = rsScreen * 0.42;
+      float shadow = smoothstep(shadowRad * 0.22, shadowRad * 0.72, dist);
       col.rgb *= shadow;
 
-      if (dist < shadowRad * 0.28) {
+      if (dist < shadowRad * 0.2) {
         col.rgb = vec3(0.0);
-      } else if (dist < shadowRad * 0.5) {
-        col.rgb *= smoothstep(shadowRad * 0.08, shadowRad * 0.42, dist);
       }
 
-      float photonRing = ringBand(dist, rsScreen * 1.5, rsScreen * 0.055 * boost);
-      col.rgb += vec3(1.0, 0.98, 0.92) * photonRing * (0.85 + gargantuaBoost * 0.35);
+      float photonRing = ringBand(dist, rsScreen * 1.5, rsScreen * 0.05 * boost);
+      col.rgb += vec3(1.0, 0.98, 0.92) * photonRing * (0.7 + gargantuaBoost * 0.25);
 
-      float einsteinRing = ringBand(dist, einsteinScreen, einsteinScreen * 0.07);
-      col.rgb += vec3(1.0, 0.62, 0.22) * einsteinRing * 0.75;
+      float einsteinRing = ringBand(dist, einsteinScreen, einsteinScreen * 0.06);
+      col.rgb += vec3(1.0, 0.62, 0.22) * einsteinRing * 0.55;
 
-      float vertNarrow = exp(-pow(abs(toBH.x) / max(rsScreen * 1.35, 0.005), 2.0) * 0.55);
-      float arcMask = vertNarrow * smoothstep(rsScreen * 5.0, rsScreen * 0.55, dist);
+      float vertNarrow = exp(-pow(abs(toBH.x) / max(rsScreen * 1.5, 0.005), 2.0) * 0.6);
+      float arcMask = vertNarrow * smoothstep(rsScreen * 4.5, rsScreen * 0.65, dist);
 
-      float arcStr = lensStrength * (4.5 + gargantuaBoost * 6.0);
-      vec2 topArc = vUv + vec2(dir.x * arcStr * 0.28, -abs(toBH.y) * arcStr);
-      vec2 botArc = vUv + vec2(-dir.x * arcStr * 0.2, abs(toBH.y) * arcStr * 0.82);
-      float topW = 0.28 + gargantuaBoost * 0.42;
-      float botW = 0.22 + gargantuaBoost * 0.28;
-      col.rgb += texture2D(tDiffuse, clamp(topArc, 0.0, 1.0)).rgb * arcMask * topW;
-      col.rgb += texture2D(tDiffuse, clamp(botArc, 0.0, 1.0)).rgb * arcMask * botW;
+      float arcStr = lensStrength * (2.2 + gargantuaBoost * 2.8);
+      vec2 topArc = vUv + vec2(dir.x * arcStr * 0.18, -abs(toBH.y) * arcStr * 0.55);
+      vec2 botArc = vUv + vec2(-dir.x * arcStr * 0.14, abs(toBH.y) * arcStr * 0.45);
+      col.rgb += texture2D(tDiffuse, clamp(topArc, 0.0, 1.0)).rgb * arcMask * (0.18 + gargantuaBoost * 0.22);
+      col.rgb += texture2D(tDiffuse, clamp(botArc, 0.0, 1.0)).rgb * arcMask * (0.14 + gargantuaBoost * 0.16);
 
-      float horizBand = exp(-pow(toBH.y / max(rsScreen * 0.85, 0.004), 2.0) * 0.35);
-      horizBand *= smoothstep(rsScreen * 4.5, rsScreen * 0.7, dist);
-      col.rgb += texture2D(tDiffuse, clamp(gravLens(vUv, lensStrength * 0.5), 0.0, 1.0)).rgb
-               * horizBand * (0.12 + gargantuaBoost * 0.18);
+      float horizBand = exp(-pow(toBH.y / max(rsScreen * 0.9, 0.004), 2.0) * 0.4);
+      horizBand *= smoothstep(rsScreen * 4.0, rsScreen * 0.75, dist);
+      col.rgb += texture2D(tDiffuse, clamp(gravLens(vUv, lensStrength * 0.35), 0.0, 1.0)).rgb
+               * horizBand * (0.1 + gargantuaBoost * 0.12);
 
-      float starHalo = smoothstep(rsScreen * 3.0, rsScreen * 0.85, dist)
-                     * smoothstep(rsScreen * 7.0, rsScreen * 3.0, dist);
-      col.rgb += texture2D(tDiffuse, clamp(gravLens(vUv, lensStrength * 1.2 * boost), 0.0, 1.0)).rgb
-               * starHalo * 0.1;
-
-      col.rgb += sampleBloom(vUv, bloomStrength * (0.35 + gargantuaBoost * 0.55));
+      col.rgb += sampleBloom(vUv, bloomStrength * (0.25 + gargantuaBoost * 0.35));
 
       gl_FragColor = col;
     }
@@ -164,8 +155,8 @@ export function createLensingPass(renderer, scene, camera) {
     const dist = Math.max(cam.position.distanceTo(bhWorldPos), rsVis * 1.5);
     const rsScreen = Math.min(0.18, Math.max(0.01, (rsVis / dist) * 1.75));
     lensingPass.uniforms.rsScreen.value = rsScreen;
-    const baseLens = Math.min(0.22, (rsVis / dist) * 0.48) * lensMul;
-    lensingPass.uniforms.lensStrength.value = gargantuaMode ? baseLens * 1.35 : baseLens;
+    const baseLens = Math.min(0.12, (rsVis / dist) * 0.32) * lensMul;
+    lensingPass.uniforms.lensStrength.value = gargantuaMode ? baseLens * 1.15 : baseLens;
 
     const einsteinAngle = (2.4 * rsVis) / dist;
     const einsteinScreen = Math.min(0.26, Math.max(rsScreen * 2.2, einsteinAngle * 1.1));

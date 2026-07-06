@@ -17,7 +17,7 @@ export const REALISM_PROFILES = {
     orbitalFactor: 1.0,
     gwWaveSpeed: 48,
     gwAmplitudeScale: 0.85,
-    lensStrengthMul: 3.2,
+    lensStrengthMul: 2.4,
     toneExposure: 1.55,
     fogDensity: 0.00008,
     diskIntensity: 1.75,
