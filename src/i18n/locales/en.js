@@ -318,6 +318,29 @@ export default {
           }
         ]
       },
+      "deep_field": {
+        "id": "deep_field",
+        "icon": "🔭",
+        "title": "Deep universe",
+        "intro": "Cosmic deep field: fly through starry void with distant galaxies (SDSS sample), Planck CMB texture, and stars with diffraction halos. The black hole is nearly invisible (1.5% scale) as a local reference anchor. Ideal for exploring expansion, redshift, and cosmic scale without horizon distractions.",
+        "physics": "<strong>ΛCDM basis:</strong> <strong>H(a) = H₀√(Ωₘ/a³ + ΩΛ)</strong>, <strong>z = 1/a − 1</strong>, comoving distance <strong>d_c = c∫ dz'/H(z')</strong> numerically integrated. Universe age from <strong>t₀ = ∫ da/(a H(a))</strong>. Deep-field galaxies follow angular positions from the SDSS sample; the CMB background uses the Planck 2018 temperature map as a spherical texture.",
+        "controls": "Scene selector → <strong>Deep universe</strong>. Adjust <strong>H₀, Ωₘ, ΩΛ</strong> in Cosmology and watch the HUD (a, z, H, d_c, age). Rotate and fly toward distant galaxies; the Lab panel shows cosmic era and formulas. Enable living universe to see the star field expand.",
+        "whatToWatch": "<ol>\n<li><strong>Diffractive star field:</strong> thousands of points with diffraction halos separating with a(t).</li>\n<li><strong>SDSS galaxies:</strong> elliptical smudges at various redshifts in cosmic void.</li>\n<li><strong>Planck CMB:</strong> background sphere with primordial temperature fluctuations.</li>\n<li><strong>Faint black hole:</strong> nearly invisible local reference at center.</li>\n<li><strong>HUD and lab:</strong> live cosmological readouts and Friedmann formula validation.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "Are the galaxy data real?",
+            "a": "Yes — angular positions from an SDSS catalog subsample. Sizes and colors are representative, not exact photometry."
+          },
+          {
+            "q": "Why is the black hole barely visible?",
+            "a": "This mode sets bhScale to 0.015 to focus on the cosmic deep field. It remains as a local scale reference."
+          },
+          {
+            "q": "How does this differ from ΛCDM Cosmology mode?",
+            "a": "Cosmology minimizes the BH (35%) and emphasizes Friedmann. Deep field adds SDSS galaxies, Planck CMB, and stellar diffraction with the BH nearly hidden."
+          }
+        ]
+      },
       "string_theory": {
         "id": "string_theory",
         "icon": "🎻",
@@ -412,6 +435,10 @@ export default {
     "binary_merger": {
       "name": "Binary black hole merger",
       "subtitle": "Inspiral · merger · ringdown · Hawking evaporation"
+    },
+    "deep_field": {
+      "name": "Deep universe",
+      "subtitle": "Deep field · SDSS · Planck CMB · stellar diffraction"
     }
   },
   "featuredTheories": {

@@ -203,16 +203,14 @@ export const FORMULA_REGISTRY = {
   },
   universe_age: {
     id: 'universe_age',
-    name: 'Edad del universo (aprox.)',
-    latex: 't_0 \\approx \\frac{1}{H_0} \\cdot f(\\Omega)',
+    name: 'Edad del universo (ΛCDM)',
+    latex: 't_0 = \\int_0^{a} \\frac{da\'}{a\' H(a\')}',
     category: 'cosmologia',
     enabled: true,
     compute: (ctx) => {
-      const H0si = (ctx.H0 * 1000) / MPC;
-      const omega = Math.max(ctx.OmegaM + ctx.OmegaLambda, 1e-6);
-      const age = (1 / H0si) * (2 / 3) * (1 / Math.sqrt(omega));
-      const display = age / (3.156e7 * 1e9);
-      return { value: age, unit: 's', display, displayUnit: 'Gyr' };
+      const ageGyr = safeNum(ctx.universeAgeGyr, 0);
+      const age = ageGyr * 3.156e16;
+      return { value: age, unit: 's', display: ageGyr, displayUnit: 'Gyr', simValue: ageGyr };
     },
   },
   tidal_force: {
@@ -332,6 +330,7 @@ export function buildFormulaContext(universe, horizonSim, engine) {
     OmegaLambda,
     HNow: safeNum(readouts.H, H0),
     dc: safeNum(readouts.dc, 0),
+    universeAgeGyr: safeNum(cosmo.universeAgeGyr?.(), 0),
     orbitR: rs * 25,
     probeR: Math.max(safeNum(horizonSim?.probeRadius, rs * 10), rs * 1.001),
     impactParam: Math.max(rs * 5, schwarzschildRadius(massKg) * 0.01),

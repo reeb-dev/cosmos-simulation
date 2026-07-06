@@ -39,11 +39,11 @@ for (const id of MODE_IDS) {
 if (THEORY_IDS.length >= 30) ok('horizon theories', `${THEORY_IDS.length} theories`);
 else fail('horizon theories', `${THEORY_IDS.length}`);
 
-for (const id of ['friedmann_h', 'schwarzschild_rs', 'hawking_temperature']) {
+for (const id of ['friedmann_H', 'schwarzschild_rs', 'hawking_temperature']) {
   const f = FORMULA_REGISTRY[id];
   if (!f?.compute) fail(`formula ${id}`, 'missing');
   else {
-    const r = f.compute({ massKg: 2e31, H0: 70, a: 1, OmegaM: 0.3, OmegaLambda: 0.7, rsVis: 10, orbitR: 50 });
+    const r = f.compute({ massKg: 2e31, H0: 70, a: 1, OmegaM: 0.3, OmegaLambda: 0.7, rsVis: 10, orbitR: 50, HNow: 70 });
     if (r?.value == null && r?.simValue == null) fail(`formula ${id}`, 'no value');
     else ok(`formula ${id}`);
   }
@@ -51,8 +51,8 @@ for (const id of ['friedmann_h', 'schwarzschild_rs', 'hawking_temperature']) {
 
 try {
   const cf = createCustomFormula('test', 'sqrt(G * M / r)');
-  const val = cf.compute({ massKg: 2e31, orbitRMeters: 1e6, G: 6.674e-11 });
-  if (typeof val.value === 'number') ok('custom formula sqrt');
+  const val = cf.compute({ massKg: 2e31, orbitR: 50, rsVis: 10, visScale: 1e10 });
+  if (typeof val.value === 'number' && Number.isFinite(val.value)) ok('custom formula sqrt');
   else fail('custom formula', 'bad result');
 } catch (e) {
   fail('custom formula', e.message);

@@ -318,6 +318,29 @@ export default {
           }
         ]
       },
+      "deep_field": {
+        "id": "deep_field",
+        "icon": "🔭",
+        "title": "Universo a escala",
+        "intro": "Campo profundo cosmológico: vuelo por un vacío estrellado con galaxias lejanas (muestra SDSS), textura CMB de Planck y estrellas con difracción. El agujero negro queda casi invisible (1,5% de escala) como ancla de referencia local. Ideal para explorar la expansión, el redshift y la escala del cosmos sin la distracción del horizonte.",
+        "physics": "<strong>Base ΛCDM:</strong> <strong>H(a) = H₀√(Ωₘ/a³ + ΩΛ)</strong>, <strong>z = 1/a − 1</strong>, distancia comóvil <strong>d_c = c∫ dz'/H(z')</strong> integrada numéricamente. La edad del universo proviene de <strong>t₀ = ∫ da/(a H(a))</strong>. Las galaxias del campo profundo siguen posiciones angulares de la muestra SDSS; el fondo CMB usa el mapa de temperatura de Planck 2018 como textura esférica.",
+        "controls": "Selector → <strong>Universo a escala</strong>. Ajusta <strong>H₀, Ωₘ, ΩΛ</strong> en Cosmología y observa el HUD (a, z, H, d_c, edad). Rota y acércate a galaxias lejanas; el panel Laboratorio muestra era cósmica y fórmulas. Activa universo vivo para ver el campo estelar expandirse.",
+        "whatToWatch": "<ol>\n<li><strong>Campo estelar difractivo:</strong> miles de puntos con halos de difracción que se separan con a(t).</li>\n<li><strong>Galaxias SDSS:</strong> manchas elípticas a distintos redshifts en el vacío cósmico.</li>\n<li><strong>CMB Planck:</strong> esfera de fondo con fluctuaciones de temperatura del universo primordial.</li>\n<li><strong>Agujero negro tenue:</strong> referencia local casi imperceptible en el centro.</li>\n<li><strong>HUD y laboratorio:</strong> lecturas cosmológicas en vivo y validación de fórmulas Friedmann.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "¿Los datos de galaxias son reales?",
+            "a": "Sí, posiciones angulares de una submuestra del catálogo SDSS. Los tamaños y colores son representativos, no fotometría exacta."
+          },
+          {
+            "q": "¿Por qué casi no se ve el agujero negro?",
+            "a": "Este modo reduce bhScale a 0,015 para centrar la escena en el campo profundo cósmico. Sigue presente como referencia de escala local."
+          },
+          {
+            "q": "¿En qué se diferencia de Cosmología ΛCDM?",
+            "a": "Cosmología minimiza el BH (35%) y enfatiza Friedmann. Campo profundo añade galaxias SDSS, CMB Planck y difracción estelar con el BH casi oculto."
+          }
+        ]
+      },
       "string_theory": {
         "id": "string_theory",
         "icon": "🎻",
@@ -412,6 +435,10 @@ export default {
     "binary_merger": {
       "name": "Choque de agujeros negros",
       "subtitle": "Inspiral · fusión · ringdown · evaporación Hawking"
+    },
+    "deep_field": {
+      "name": "Universo a escala",
+      "subtitle": "Campo profundo · SDSS · CMB Planck · difracción estelar"
     }
   },
   "featuredTheories": {
