@@ -93,7 +93,35 @@ export function createBinaryBlackHolesScene(initialRs = 3) {
   const flash = createMergerFlash();
   const hawking = createHawkingBurst();
 
-  group.add(bh1.group, bh2.group, merged.group, flash.mesh, hawking.points);
+  const bridgeGeo = new THREE.RingGeometry(0.92, 1, 64);
+  const bridgeMat = new THREE.MeshBasicMaterial({
+    color: 0xffaa55,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+  bridge.rotation.x = Math.PI / 2;
+
+  const trailMax = 64;
+  const trailGeo = new THREE.BufferGeometry();
+  const trailPos = new Float32Array(trailMax * 3 * 2);
+  trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+  const trailMat = new THREE.LineBasicMaterial({
+    color: 0x66aaff,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const trail1 = new THREE.Line(trailGeo, trailMat);
+  const trail2 = new THREE.Line(trailGeo.clone(), trailMat.clone());
+  const trailIdx = { bh1: 0, bh2: 0 };
+  const trailHistory = { bh1: [], bh2: [] };
+
+  group.add(bh1.group, bh2.group, merged.group, bridge, trail1, trail2, flash.mesh, hawking.points);
 
   let lastEvapBurst = 0;
 
@@ -110,6 +138,39 @@ export function createBinaryBlackHolesScene(initialRs = 3) {
       bh2.diskMat.uniforms.time.value = animTime + 1.3;
       if (bh1.diskMat.uniforms.spin) bh1.diskMat.uniforms.spin.value = state.spin1;
       if (bh2.diskMat.uniforms.spin) bh2.diskMat.uniforms.spin.value = state.spin2;
+
+      const dx = state.bh2Pos.x - state.bh1Pos.x;
+      const dz = state.bh2Pos.z - state.bh1Pos.z;
+      const dist = Math.hypot(dx, dz) || 1;
+      bridge.position.set(
+        (state.bh1Pos.x + state.bh2Pos.x) / 2,
+        0,
+        (state.bh1Pos.z + state.bh2Pos.z) / 2,
+      );
+      bridge.scale.set(dist * 0.5, dist * 0.5, 1);
+      bridge.rotation.y = Math.atan2(dz, dx);
+      const bridgeOp = state.phase === BINARY_PHASE.INSPIRAL
+        ? Math.min(0.55, 40 / dist)
+        : state.phase === BINARY_PHASE.MERGER
+          ? 0.7 * (1 - state.coalescence)
+          : 0;
+      bridgeMat.opacity = bridgeOp;
+
+      for (const key of ['bh1', 'bh2']) {
+        const hist = trailHistory[key];
+        const pos = key === 'bh1' ? state.bh1Pos : state.bh2Pos;
+        hist.push({ x: pos.x, z: pos.z });
+        if (hist.length > trailMax) hist.shift();
+        const arr = (key === 'bh1' ? trail1 : trail2).geometry.attributes.position.array;
+        for (let i = 0; i < hist.length; i++) {
+          arr[i * 3] = hist[i].x;
+          arr[i * 3 + 1] = 0;
+          arr[i * 3 + 2] = hist[i].z;
+        }
+        (key === 'bh1' ? trail1 : trail2).geometry.setDrawRange(0, hist.length);
+        (key === 'bh1' ? trail1 : trail2).geometry.attributes.position.needsUpdate = true;
+        (key === 'bh1' ? trail1 : trail2).visible = hist.length > 2 && state.phase !== BINARY_PHASE.DEAD;
+      }
     } else {
       bh1.group.visible = false;
       bh2.group.visible = false;
@@ -160,6 +221,11 @@ export function createBinaryBlackHolesScene(initialRs = 3) {
     merged.group.visible = false;
     flash.mesh.material.opacity = 0;
     hawking.points.material.opacity = 0;
+    bridgeMat.opacity = 0;
+    trail1.visible = false;
+    trail2.visible = false;
+    trailHistory.bh1 = [];
+    trailHistory.bh2 = [];
     lastEvapBurst = 0;
   }
 

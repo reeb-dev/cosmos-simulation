@@ -43,7 +43,7 @@ Simulador web para **enseñanza, divulgación e investigación exploratoria** de
 
 | Área | Qué ofrece |
 |------|------------|
-| **8 modos** | Agujero negro, multiverso, cosmología, campo profundo, binario GW, Higgs, cuerdas, selector de teorías |
+| **8 modos** | Agujero negro, multiverso, cosmología, campo profundo, binario GW, **choque galaxias**, Higgs, cuerdas, selector de teorías |
 | **39 teorías** | Singularidad, firewall, ER=EPR, fuzzball, LQG… + ficción etiquetada ★/★★ |
 | **Física validada** | Friedmann ΛCDM, Schwarzschild, Hawking, strain GW (Peters), 20+ fórmulas en laboratorio |
 | **Investigación** | CSV/JSON, informes validación/publicación, barridos H₀ y M_BH, URL reproducible |
@@ -205,7 +205,11 @@ Los estudiantes ven menos carpetas en la GUI y no pueden cambiar los parámetros
 
 ### Preset GW150914 (LIGO)
 
-En **Controles → Choque binario → GW150914 (LIGO) · Abbott+2016** se cargan masas inspiradas en la primera detección de ondas gravitacionales (M₁≈36 M☉, M₂≈29 M☉). Referencia: Abbott et al. (2016), Phys. Rev. Lett. 116, 061102.
+En **Controles → Choque binario → GW150914 (LIGO) · Abbott+2016** se cargan masas inspiradas en la primera detección de ondas gravitacionales (M₁≈36 M☉, M₂≈29 M☉). El choque binario incluye: inspiral (Peters), puente de acreción, trayectorias orbitales, coalescencia visual, ringdown, comparador LIGO y masa de chirp ℳ en el panel.
+
+### Choque de galaxias
+
+Modo **Choque de galaxias** (selector de escena 🌌): dos espirales que colisionan con fases de marea, colas tidales y brote estelar. Preset **Vía Láctea–Andrómeda** en Controles → Galaxias.
 
 ### Cómo citar este software
 

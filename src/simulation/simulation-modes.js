@@ -158,6 +158,27 @@ export const SIMULATION_MODES = {
       bhOpacity: 0.12,
     },
   },
+  galaxy_collision: {
+    id: 'galaxy_collision',
+    name: 'Choque de galaxias',
+    subtitle: 'Acercamiento · marea · colas tidales · fusión · remanente elíptico',
+    camera: { x: 0, y: 120, z: 280, tx: 0, ty: 0, tz: 0 },
+    maxDistance: 900,
+    minDistanceFactor: 0.05,
+    fogDensity: 0.00015,
+    scene: {
+      exterior: true,
+      horizon: false,
+      interior: false,
+      multiverse: false,
+      higgs: false,
+      string: false,
+      binary: false,
+      galaxyCollision: true,
+      bhScale: 0,
+      bhOpacity: 0,
+    },
+  },
 };
 
 export const MODE_IDS = Object.keys(SIMULATION_MODES);
@@ -226,7 +247,8 @@ export class SimulationModeManager {
     this.currentMode = mode.id;
     const {
       camera, controls, exteriorGroup, horizonMembrane, interior,
-      multiverseWorld, higgsScene, stringScene, binaryScene, deepField, gwWaves, bh, scene, setMinDistance,
+      multiverseWorld, higgsScene, stringScene, binaryScene, deepField, gwWaves,
+      galaxyCollisionScene, bh, scene, setMinDistance,
       horizonSim, onTheoryChange,
     } = this.ctx;
 
@@ -246,6 +268,7 @@ export class SimulationModeManager {
     binaryScene?.group && (binaryScene.group.visible = !!s.binary);
     deepField?.group && (deepField.group.visible = !!s.deepField);
     gwWaves?.group && (gwWaves.group.visible = !!s.binary);
+    galaxyCollisionScene?.group && (galaxyCollisionScene.group.visible = !!s.galaxyCollision);
 
     if (s.deepField) {
       deepField?.showScaleBar?.(true);
@@ -267,6 +290,12 @@ export class SimulationModeManager {
       this.ctx.binarySim?.startCollision?.();
       binaryScene?.reset?.();
       gwWaves?.reset?.();
+    }
+
+    if (s.galaxyCollision) {
+      this.ctx.galaxyCollisionSim?.reset?.();
+      this.ctx.galaxyCollisionSim?.startCollision?.();
+      galaxyCollisionScene?.reset?.();
     }
 
     bh.group.scale.setScalar(s.bhScale || 0.001);

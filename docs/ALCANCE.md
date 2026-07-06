@@ -18,7 +18,7 @@
 
 ## Qué incluye hoy (v1.2)
 
-### 8 modos de simulación
+### 9 modos de simulación
 
 | Modo | Contenido |
 |------|-----------|
@@ -26,6 +26,8 @@
 | **Multiverso** | Burbujas Friedmann con distintos Ωₘ/ΩΛ |
 | **Cosmología ΛCDM** | Expansión, redshift, CMB, galaxias |
 | **Universo a escala** | Campo profundo, SDSS, CMB Planck, difracción estelar |
+| **Choque binario** | Inspiral GW (Peters), coalescencia, ringdown, LIGO GW150914, evaporación Hawking |
+| **Choque de galaxias** | Marea, colas tidales, brote estelar, fusión (Vía Láctea–Andrómeda) |
 | **Teoría del horizonte** | Selector rápido de teorías destacadas |
 | **Choque binario** | Inspiral GW (Peters), fusión, ringdown, comparador LIGO GW150914 |
 | **Higgs** | Campo escalar y acoplamiento de masa (pedagógico) |

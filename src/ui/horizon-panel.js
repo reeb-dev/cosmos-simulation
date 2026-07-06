@@ -47,11 +47,37 @@ function probeStateLabel(state) {
   return map[state] ?? state;
 }
 
-export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null, stringScene = null) {
+export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null, stringScene = null, galaxySim = null) {
   const panel = document.getElementById('theory-panel');
   if (!panel) return;
 
   const mode = modeManager ? getMode(modeManager.currentMode) : null;
+
+  if (mode?.id === 'galaxy_collision' && galaxySim) {
+    const r = galaxySim.getReadouts();
+    const eventsHtml = galaxySim.events.slice(0, 4).map((e) => `<div class="life-event">${e.text}</div>`).join('')
+      || `<div class="life-event dim">${t('panels.theory.galaxy.waiting')}</div>`;
+    const body = panel.querySelector('.panel-body') || panel;
+    body.innerHTML = `
+      <span class="theory-status">${r.phase}</span>
+      <p class="theory-short">${t('panels.theory.galaxy.short')}</p>
+      <p class="theory-desc">${t('panels.theory.galaxy.desc')}</p>
+      <div class="theory-readouts">
+        <h3>${t('panels.theory.galaxy.system')}</h3>
+        <div><strong>M₁ / M₂:</strong> ${r.m1.toFixed(2)} / ${r.m2.toFixed(2)} (×10¹⁰ M☉)</div>
+        <div><strong>${t('gui.separation')}:</strong> ${r.separation.toFixed(1)} kpc</div>
+        <div><strong>r<sub>marea</sub>:</strong> ${r.tidalRadius.toFixed(1)} kpc</div>
+        <div><strong>${t('panels.theory.galaxy.tidal')}:</strong> ${r.tidalPct.toFixed(0)}%</div>
+        <div><strong>${t('panels.theory.galaxy.tails')}:</strong> ${r.tailPct.toFixed(0)}%</div>
+        <div><strong>${t('panels.theory.galaxy.starburst')}:</strong> ${r.starburstPct.toFixed(0)}%</div>
+        <div><strong>${t('panels.theory.galaxy.merger')}:</strong> ${r.mergerPct.toFixed(0)}%</div>
+      </div>
+      <div class="life-events">${eventsHtml}</div>
+      <p class="theory-hint">${t('panels.theory.galaxy.hint')}</p>
+    `;
+    setPanelTitle(panel, t('panels.theory.galaxy.title'));
+    return;
+  }
 
   if (mode?.id === 'binary_merger' && binarySim) {
     const r = binarySim.getReadouts();
@@ -66,11 +92,13 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
         <h3>${t('panels.theory.binary.system')}</h3>
         <div><strong>M₁ / M₂:</strong> ${r.m1} / ${r.m2} M☉</div>
         <div><strong>μ:</strong> ${r.mu?.toFixed(2) ?? '—'} M☉</div>
+        <div><strong>ℳ chirp:</strong> ${r.chirpMass?.toFixed(2) ?? '—'} M☉</div>
         <div><strong>${t('gui.separation')}:</strong> ${r.separation.toFixed(1)} u.vis</div>
         <div><strong>Strain h:</strong> ${r.strain.toExponential(2)}</div>
         <div><strong>f<sub>GW</sub>:</strong> ${r.frequency.toFixed(1)} Hz (chirp)</div>
         <div><strong>E<sub>rad</sub>:</strong> ${r.energyRadiated.toExponential(2)} J</div>
         ${r.merged > 0 ? `<div><strong>M fusionado:</strong> ${r.merged.toFixed(1)} M☉</div>` : ''}
+        ${r.peakStrain > 0 ? `<div><strong>h<sub>pico</sub>:</strong> ${r.peakStrain.toExponential(2)}</div>` : ''}
         ${r.evapPct > 0 ? `<div><strong>Evaporación:</strong> ${r.evapPct.toFixed(0)}%</div>` : ''}
         <div><strong>T Hawking:</strong> ${r.hawkingT.toExponential(2)} K</div>
       </div>

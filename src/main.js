@@ -40,6 +40,8 @@ import { createStringScene } from './rendering/string-scene.js';
 import { createBinaryBlackHolesScene } from './rendering/binary-black-holes.js';
 import { createGravitationalWaves } from './rendering/gravitational-waves.js';
 import { BinaryBlackHoleSim } from './simulation/binary-black-holes.js';
+import { GalaxyCollisionSim } from './simulation/galaxy-collision.js';
+import { createGalaxyCollisionScene } from './rendering/galaxy-collision-scene.js';
 import { SimulationModeManager } from './simulation/simulation-modes.js';
 import { initPanelCollapse } from './ui/panel-collapse.js';
 import { SimulationSeed, parseUrlState, applyUrlState, collectUrlState, syncUrlState } from './research/simulation-seed.js';
@@ -131,7 +133,9 @@ const stringScene = createStringScene();
 const binarySim = new BinaryBlackHoleSim();
 const binaryScene = createBinaryBlackHolesScene();
 const gwWaves = createGravitationalWaves();
-scene.add(multiverseWorld.group, higgsScene.group, stringScene.group, binaryScene.group, gwWaves.group);
+const galaxyCollisionSim = new GalaxyCollisionSim();
+const galaxyCollisionScene = createGalaxyCollisionScene();
+scene.add(multiverseWorld.group, higgsScene.group, stringScene.group, binaryScene.group, gwWaves.group, galaxyCollisionScene.group);
 
 // Guardar opacidades base del BH para modos
 bh.group.traverse((obj) => {
@@ -191,6 +195,8 @@ const appCtx = {
   binarySim,
   binaryScene,
   gwWaves,
+  galaxyCollisionSim,
+  galaxyCollisionScene,
   bh,
   setMinDistance,
   onRsChange,
@@ -321,6 +327,7 @@ function animate(now) {
   const mode = modeManager.currentMode;
   const isAltScene = mode === 'multiverse' || mode === 'higgs' || mode === 'string_theory';
   const isBinary = mode === 'binary_merger';
+  const isGalaxyCollision = mode === 'galaxy_collision';
   const isDeepField = mode === 'deep_field';
   const isCosmology = mode === 'cosmology';
   const isString = mode === 'string_theory';
@@ -330,7 +337,7 @@ function animate(now) {
   const profile = getRealismProfile(realism);
   const cosmo = engine.universe.cosmology;
 
-  scene.fog.density = isBinary || isDeepField
+  scene.fog.density = isBinary || isGalaxyCollision || isDeepField
     ? profile.fogDensity
     : mode === 'black_hole'
       ? profile.fogDensity * 0.28
@@ -347,7 +354,7 @@ function animate(now) {
   starfield.setRealism?.(realism);
   galaxyField.setRealism?.(realism);
 
-  if (!isBinary && !isDeepField) {
+  if (!isBinary && !isGalaxyCollision && !isDeepField) {
     starfield.update(scaleFactor, rawDt, life.vitality, null, realism);
     galaxyField.update(scaleFactor, rawDt, cosmo, realism);
     cmbBackground.update(cosmo.redshift);
@@ -378,8 +385,8 @@ function animate(now) {
   interior.animate(animTime);
   horizonTransition.update(rawDt, animTime);
 
-  if (isAltScene || isBinary || isDeepField) {
-    if (!isBinary && !isDeepField) exteriorGroup.visible = false;
+  if (isAltScene || isBinary || isGalaxyCollision || isDeepField) {
+    if (!isBinary && !isGalaxyCollision && !isDeepField) exteriorGroup.visible = false;
     horizonMembrane.visible = false;
     interior.group.visible = false;
     if (isDeepField) {
@@ -429,6 +436,30 @@ function animate(now) {
       camera.position.x += (camX - camera.position.x) * 0.04;
       camera.position.y += (targetH - camera.position.y) * 0.04;
       camera.position.z += (camZ - camera.position.z) * 0.04;
+      controls.target.set(frame.tx, frame.ty, frame.tz);
+    }
+    if (isGalaxyCollision) {
+      bh.group.visible = false;
+      exteriorGroup.visible = true;
+      starfield.group.visible = true;
+      galaxyField.group.visible = true;
+      cmbBackground.group.visible = true;
+      grid.grid.visible = false;
+      particles.group.visible = false;
+      starfield.points.material.opacity = 0.5;
+      if (!engine.universe.paused) galaxyCollisionSim.step(rawDt);
+      galaxyCollisionScene.update(rawDt, galaxyCollisionSim);
+      starfield.update(engine.getScaleFactor(), rawDt, life.vitality, null, realism);
+      galaxyField.update(engine.getScaleFactor(), rawDt, cosmo, realism);
+
+      binaryCamLerp = Math.min(1, binaryCamLerp + rawDt * 0.6);
+      const frame = galaxyCollisionSim.getCameraFrame();
+      const angle = animTime * 0.08;
+      const camX = Math.sin(angle) * frame.dist * binaryCamLerp;
+      const camZ = Math.cos(angle) * frame.dist * binaryCamLerp;
+      camera.position.x += (camX - camera.position.x) * 0.03;
+      camera.position.y += (frame.height - camera.position.y) * 0.03;
+      camera.position.z += (camZ - camera.position.z) * 0.03;
       controls.target.set(frame.tx, frame.ty, frame.tz);
     }
   } else {
@@ -487,9 +518,9 @@ function animate(now) {
   particles.update(particleStates, profile.geodesicOpacity ?? 0.45);
 
   updateHud(engine.universe.getReadouts(), modeManager, isBinary ? binarySim.getReadouts() : null, simulationSeed.seed, isDeepField ? deepField : null);
-  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null, isString ? stringScene : null);
+  updateTheoryPanel(horizonSim, { universe: engine.universe, horizonSim, engine }, modeManager, higgsScene, isBinary ? binarySim : null, isString ? stringScene : null, isGalaxyCollision ? galaxyCollisionSim : null);
   updateModePanel(modeManager);
-  updateLifePanel(lifeEngine, isBinary ? binarySim : null, isBinary);
+  updateLifePanel(lifeEngine, isBinary ? binarySim : isGalaxyCollision ? galaxyCollisionSim : null, isBinary || isGalaxyCollision);
   updateLabPanel(theoryLab);
   updateResearchPanel(appCtx);
 

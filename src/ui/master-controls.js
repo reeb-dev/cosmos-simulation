@@ -63,6 +63,11 @@ export const MODE_CONTROL_MAP = {
     featured: false,
     sim: 'basic',
   },
+  galaxy_collision: {
+    folders: ['galaxy', 'sim', 'reset'],
+    featured: false,
+    sim: 'basic',
+  },
   string_theory: {
     folders: ['horizon', 'sim', 'lab', 'reset'],
     featured: false,
@@ -250,6 +255,59 @@ export function createMasterGui(ctx) {
     },
   }, 'resetBinary').name(t('gui.resetBinary'));
 
+  const galaxyState = {
+    m1: ctx.galaxyCollisionSim?.m1 ?? 1.0,
+    m2: ctx.galaxyCollisionSim?.m2 ?? 0.8,
+    impactParam: ctx.galaxyCollisionSim?.impactParam ?? 0.35,
+    relativeSpeed: ctx.galaxyCollisionSim?.relativeSpeed ?? 280,
+  };
+  const galaxyFolder = gui.addFolder(t('gui.galaxy'));
+  folders.galaxy = galaxyFolder;
+  galaxyFolder.add(galaxyState, 'm1', 0.2, 3, 0.1).name(t('gui.galaxyM1')).onChange((v) => {
+    ctx.galaxyCollisionSim?.configure({ m1: v });
+  });
+  galaxyFolder.add(galaxyState, 'm2', 0.2, 3, 0.1).name(t('gui.galaxyM2')).onChange((v) => {
+    ctx.galaxyCollisionSim?.configure({ m2: v });
+  });
+  galaxyFolder.add(galaxyState, 'impactParam', 0, 1, 0.05).name(t('gui.impactParam')).onChange((v) => {
+    ctx.galaxyCollisionSim?.configure({ impactParam: v });
+  });
+  galaxyFolder.add(galaxyState, 'relativeSpeed', 50, 500, 10).name(t('gui.relativeSpeed')).onChange((v) => {
+    ctx.galaxyCollisionSim?.configure({ relativeSpeed: v });
+  });
+  galaxyFolder.add({
+    milkyAndromeda: () => {
+      galaxyState.m1 = 1.0;
+      galaxyState.m2 = 1.25;
+      galaxyState.impactParam = 0.5;
+      galaxyState.relativeSpeed = 110;
+      ctx.galaxyCollisionSim?.configure({
+        m1: 1.0, m2: 1.25, impactParam: 0.5, relativeSpeed: 110,
+      });
+      ctx.modeManager?.setMode('galaxy_collision');
+      ctx.galaxyCollisionSim?.startCollision();
+    },
+  }, 'milkyAndromeda').name(t('gui.milkyAndromeda'));
+  galaxyFolder.add({
+    startGalaxy: () => {
+      ctx.modeManager?.setMode('galaxy_collision');
+      ctx.galaxyCollisionSim?.configure({
+        m1: galaxyState.m1,
+        m2: galaxyState.m2,
+        impactParam: galaxyState.impactParam,
+        relativeSpeed: galaxyState.relativeSpeed,
+        timeScale: ctx.universe.timeScale,
+      });
+      ctx.galaxyCollisionSim?.startCollision();
+    },
+  }, 'startGalaxy').name(t('gui.startGalaxyCollision'));
+  galaxyFolder.add({
+    resetGalaxy: () => {
+      ctx.galaxyCollisionSim?.reset();
+      ctx.galaxyCollisionScene?.reset?.();
+    },
+  }, 'resetGalaxy').name(t('gui.resetGalaxy'));
+
   const cosmoPresets = getBundle('gui.cosmoPresets') ?? {};
   const cosmo = gui.addFolder(t('gui.cosmo'));
   folders.cosmo = cosmo;
@@ -312,6 +370,7 @@ export function createMasterGui(ctx) {
   controllers.time = sim.add(state, 'timeScaleLog', 2, 7, 0.1).name(t('gui.timeScale')).onChange((v) => {
     ctx.universe.timeScale = 10 ** v;
     ctx.binarySim?.configure({ timeScale: ctx.universe.timeScale });
+    ctx.galaxyCollisionSim?.configure({ timeScale: ctx.universe.timeScale });
   });
   controllers.paused = sim.add(state, 'paused').name(t('gui.pause')).onChange((v) => { ctx.universe.paused = v; });
   controllers.exp = sim.add(state, 'showExpansion').name(t('gui.expansion')).onChange((v) => { ctx.universe.showExpansion = v; });

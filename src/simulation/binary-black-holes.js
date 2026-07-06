@@ -73,6 +73,7 @@ export class BinaryBlackHoleSim {
     this.memoryPulse = 0;
     this.evapProgress = 0;
     this.evapBurst = 0;
+    this.coalescence = 0;
     this.lastStrain = 0;
     this.lastPhysicalStrain = 0;
     this.lastFrequency = 0;
@@ -111,6 +112,7 @@ export class BinaryBlackHoleSim {
     this._phaseLogged.clear();
     this.ringdownAmplitude = 0;
     this.mergerFlash = 0;
+    this.coalescence = 0;
     this.memoryPulse = 0;
     this.evapProgress = 0;
     this.evapBurst = 0;
@@ -136,6 +138,18 @@ export class BinaryBlackHoleSim {
 
   get muSolar() {
     return (this.m1Solar * this.m2Solar) / (this.m1Solar + this.m2Solar);
+  }
+
+  /** Masa de chirp ℳ = (m₁m₂)^(3/5) / (m₁+m₂)^(1/5) en M☉ */
+  get chirpMassSolar() {
+    const m1 = this.m1Solar;
+    const m2 = this.m2Solar;
+    return (m1 * m2) ** 0.6 / (m1 + m2) ** 0.2;
+  }
+
+  get peakStrainPhysical() {
+    if (!this.strainHistory.length) return 0;
+    return Math.max(...this.strainHistory.map((s) => Math.abs(s.h)));
   }
 
   get rs1() {
@@ -236,12 +250,14 @@ export class BinaryBlackHoleSim {
 
       if (this.separationVis <= this.mergerThreshold) this._enterMerger();
     } else if (this.phase === BINARY_PHASE.MERGER) {
+      this.coalescence = Math.min(1, this.coalescence + t * 1.8);
       this.mergerFlash = Math.min(1, this.mergerFlash + t * 2.5);
       this.memoryPulse = Math.max(0, 1 - this.mergerFlash * 0.7);
-      this.lastStrain = Math.min(1, 0.45 + (1 - this.mergerFlash) * 0.55);
-      this.lastPhysicalStrain = 1e-21 * (0.4 + (1 - this.mergerFlash) * 0.6);
-      this.lastFrequency = 220 + this.mergerFlash * 200;
-      if (this.mergerFlash >= 1) {
+      const peak = 0.55 + Math.sin(this.coalescence * Math.PI) * 0.35;
+      this.lastStrain = Math.min(1, peak);
+      this.lastPhysicalStrain = 1e-21 * peak;
+      this.lastFrequency = 180 + this.coalescence * 280;
+      if (this.coalescence >= 1 && this.mergerFlash >= 0.85) {
         this.phase = BINARY_PHASE.RINGDOWN;
         this.ringdownTime = 0;
         this.ringdownAmplitude = 0.35;
@@ -293,6 +309,7 @@ export class BinaryBlackHoleSim {
     );
     this.phase = BINARY_PHASE.MERGER;
     this.mergerFlash = 0;
+    this.coalescence = 0;
     this.memoryPulse = 1;
     this.energyRadiated += radiated * M_SUN * C * C * 0.05;
     this.logPhase(BINARY_PHASE.MERGER);
@@ -300,18 +317,37 @@ export class BinaryBlackHoleSim {
 
   getState() {
     const pos = this.bhPositions;
-    const showBinary = this.phase === BINARY_PHASE.IDLE || this.phase === BINARY_PHASE.INSPIRAL;
+    const showBinary = this.phase === BINARY_PHASE.IDLE
+      || this.phase === BINARY_PHASE.INSPIRAL
+      || this.phase === BINARY_PHASE.MERGER;
     const showMerged = [
       BINARY_PHASE.MERGER,
       BINARY_PHASE.RINGDOWN,
       BINARY_PHASE.EVAPORATION,
-    ].includes(this.phase);
+    ].includes(this.phase) && this.coalescence > 0.35;
+
+    let bh1Pos = pos.bh1;
+    let bh2Pos = pos.bh2;
+    if (this.phase === BINARY_PHASE.MERGER) {
+      const c = this.coalescence;
+      bh1Pos = {
+        x: pos.bh1.x * (1 - c) + pos.bh2.x * c * 0.5,
+        y: 0,
+        z: pos.bh1.z * (1 - c) + pos.bh2.z * c * 0.5,
+      };
+      bh2Pos = {
+        x: pos.bh2.x * (1 - c) + pos.bh1.x * c * 0.5,
+        y: 0,
+        z: pos.bh2.z * (1 - c) + pos.bh1.z * c * 0.5,
+      };
+    }
 
     return {
       phase: this.phase,
       gwPhase: this.gwPhase,
       showBinary,
       showMerged,
+      coalescence: this.coalescence,
       m1Solar: this.m1Solar,
       m2Solar: this.m2Solar,
       spin1: this.spin1,
@@ -323,8 +359,8 @@ export class BinaryBlackHoleSim {
       mergedSpin: this.mergedSpin,
       separationVis: this.separationVis,
       orbitalAngle: this.orbitalAngle,
-      bh1Pos: pos.bh1,
-      bh2Pos: pos.bh2,
+      bh1Pos,
+      bh2Pos,
       barycenter: { x: 0, y: 0, z: 0 },
       mergerFlash: this.mergerFlash,
       ringdownAmplitude: this.ringdownAmplitude,
@@ -349,7 +385,9 @@ export class BinaryBlackHoleSim {
       m1: this.m1Solar,
       m2: this.m2Solar,
       mu: this.muSolar,
+      chirpMass: this.chirpMassSolar,
       merged: this.mergedMassSolar,
+      peakStrain: this.peakStrainPhysical,
       strain: this.lastStrain,
       frequency: this.lastFrequency,
       energyRadiated: this.energyRadiated,

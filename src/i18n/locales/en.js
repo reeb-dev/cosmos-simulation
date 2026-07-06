@@ -318,6 +318,29 @@ export default {
           }
         ]
       },
+      "galaxy_collision": {
+        "id": "galaxy_collision",
+        "icon": "🌌",
+        "title": "Galaxy collision",
+        "intro": "Simulation of two spiral galaxies colliding: approach, first passage, tidal forces, tidal tails, starburst, and merger into an elliptical remnant. Inspired by the Antennae Galaxies or the future Milky Way–Andromeda encounter.",
+        "physics": "<strong>Simplified dynamics:</strong> two extended bodies with masses M₁, M₂ (units ×10¹⁰ M☉), impact parameter b and relative speed. Tidal radius <strong>r_t ≈ r (M_sat/M_host)^(1/3)</strong>. Dynamical friction reduces relative velocity; stars deform and form tails. Starburst increases as disks overlap.",
+        "controls": "Selector → <strong>Galaxy collision</strong>. Galaxies folder: adjust <strong>M₁, M₂, b, speed</strong>. Preset <strong>Milky Way–Andromeda</strong> or <strong>Start collision</strong>. Camera orbits the barycenter. <kbd>Space</kbd> pauses.",
+        "whatToWatch": "<ol>\n<li><strong>Approach:</strong> two spirals converge from opposite sides.</li>\n<li><strong>First passage:</strong> interpenetration and tidal deformation.</li>\n<li><strong>Tidal tails:</strong> stars dragged into long tails (Antennae style).</li>\n<li><strong>Starburst:</strong> bright nucleus as gas disks collide.</li>\n<li><strong>Merger:</strong> large elliptical remnant after relaxation.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "Is this a real N-body simulation?",
+            "a": "No. It is a heuristic two-body model with visual sprite deformation. It illustrates phases, not individual stellar orbits."
+          },
+          {
+            "q": "What is impact parameter b?",
+            "a": "Closest approach distance in the sky plane. b=0 is head-on; high b is a grazing pass with less merging."
+          },
+          {
+            "q": "Can I simulate Andromeda?",
+            "a": "Yes: use the Milky Way–Andromeda preset (M₁=1.0, M₂=1.25, b=0.5, v≈110 km/s relative)."
+          }
+        ]
+      },
       "deep_field": {
         "id": "deep_field",
         "icon": "🔭",
@@ -439,6 +462,10 @@ export default {
     "deep_field": {
       "name": "Deep universe",
       "subtitle": "Deep field · SDSS · Planck CMB · stellar diffraction"
+    },
+    "galaxy_collision": {
+      "name": "Galaxy collision",
+      "subtitle": "Tidal · tails · starburst · merger"
     }
   },
   "featuredTheories": {
@@ -480,6 +507,14 @@ export default {
     "hawkingDeath": "Hawking death",
     "startCollision": "▶ Start collision",
     "resetBinary": "↺ Reset binary",
+    "galaxy": "Galaxy collision",
+    "galaxyM1": "M₁ galaxy (×10¹⁰ M☉)",
+    "galaxyM2": "M₂ galaxy (×10¹⁰ M☉)",
+    "impactParam": "Impact parameter b",
+    "relativeSpeed": "Relative speed (km/s)",
+    "milkyAndromeda": "Milky Way–Andromeda",
+    "startGalaxyCollision": "▶ Start collision",
+    "resetGalaxy": "↺ Reset galaxies",
     "gw150914": "GW150914 preset",
     "cosmo": "Cosmology",
     "cosmoMultiverse": "Multiverse parameters",
@@ -600,11 +635,23 @@ export default {
       "frozen": "≈ 0% (frozen)",
       "binary": {
         "title": "Binary black hole merger",
-        "short": "Two black holes spiraling in, losing orbital energy via gravitational waves (Peters, 1964). Reduced mass μ = m₁m₂/(m₁+m₂).",
-        "desc": "On merger, ~5% of mass is radiated. The remnant rings down and, if enabled, evaporates via Hawking (visually accelerated). <em>Disclaimer:</em> inspiral validated with Peters; merger/ringdown are phenomenological, not full NR.",
+        "short": "Two black holes spiraling in via gravitational waves (Peters, 1964). Reduced mass μ, chirp mass ℳ.",
+        "desc": "On merger, ~5% of mass is radiated. Ringdown and optional Hawking evaporation. Includes accretion bridge, orbit trails and coalescence animation. <em>Disclaimer:</em> inspiral validated with Peters; merger/ringdown are phenomenological.",
         "system": "Binary system",
-        "hint": "💡 Watch blue-white expanding rings from the barycenter. At merger: golden flash + gravitational memory pulse.",
+        "hint": "💡 Watch GW rings, disk bridge, orbit trails and merger flash.",
         "waiting": "Set masses and press «Start collision»"
+      },
+      "galaxy": {
+        "title": "Galaxy collision",
+        "short": "Two spiral galaxies in gravitational interaction: tides, tidal tails and merger.",
+        "desc": "Pedagogical model with phases: approach → first pass → tidal → merger → relaxation. Not full N-body.",
+        "system": "Galaxy pair",
+        "tidal": "Tidal force",
+        "tails": "Tidal tails",
+        "starburst": "Starburst",
+        "merger": "Merger progress",
+        "hint": "💡 Watch tidal tails form and the nuclear starburst as disks collide.",
+        "waiting": "Adjust parameters and press «Start collision»"
       },
       "higgs": {
         "title": "Higgs boson",
@@ -671,6 +718,25 @@ export default {
       "ringdown": "Ringdown — the horizon oscillates and stabilizes",
       "evaporation": "The black hole evaporates via Hawking radiation...",
       "dead": "Black hole death — only quantum vacuum remains"
+    }
+  },
+  "galaxy": {
+    "phases": {
+      "idle": "Idle",
+      "approach": "Approach",
+      "first_pass": "First passage",
+      "tidal": "Tidal interaction",
+      "merger": "Core merger",
+      "relaxation": "Relaxation",
+      "done": "Stable remnant"
+    },
+    "events": {
+      "approach": "Galaxies approach under mutual gravity...",
+      "firstPass": "First crossing! Disks interpenetrate",
+      "tidal": "Tidal forces strip stars — tidal tails form",
+      "merger": "Nuclei merge into an elliptical galaxy",
+      "relaxation": "Remnant relaxes; starburst fades",
+      "done": "Collision complete — giant elliptical"
     }
   },
   "toast": {

@@ -318,6 +318,29 @@ export default {
           }
         ]
       },
+      "galaxy_collision": {
+        "id": "galaxy_collision",
+        "icon": "🌌",
+        "title": "Choque de galaxias",
+        "intro": "Simulación de la colisión de dos galaxias espirales: acercamiento, primer paso, fuerzas de marea, colas tidales, brote estelar y fusión en un remanente elíptico. Inspirado en pares como las Galaxias Antennae o la futura colisión Vía Láctea–Andrómeda.",
+        "physics": "<strong>Dinámica simplificada:</strong> dos cuerpos extendidos con masas M₁, M₂ (unidades ×10¹⁰ M☉), parámetro de impacto b y velocidad relativa. Radio de marea <strong>r_t ≈ r (M_sat/M_host)^(1/3)</strong>. Fricción dinámica reduce la velocidad relativa; las estrellas se deforman y forman colas. El brote estelar aumenta al cruzarse los discos.",
+        "controls": "Selector → <strong>Choque de galaxias</strong>. Carpeta Galaxias: ajusta <strong>M₁, M₂, b, velocidad</strong>. Preset <strong>Vía Láctea–Andrómeda</strong> o <strong>Iniciar colisión</strong>. La cámara orbita el baricentro. <kbd>Espacio</kbd> pausa.",
+        "whatToWatch": "<ol>\n<li><strong>Acercamiento:</strong> dos espirales convergen desde lados opuestos.</li>\n<li><strong>Primer paso:</strong> interpenetración y deformación por marea.</li>\n<li><strong>Colas tidales:</strong> estrellas arrastradas en colas largas (estilo Antennae).</li>\n<li><strong>Brote estelar:</strong> núcleo brillante al chocar los discos de gas.</li>\n<li><strong>Fusión:</strong> remanente elíptico grande tras la relajación.</li>\n</ol>",
+        "faq": [
+          {
+            "q": "¿Es una simulación N-cuerpos real?",
+            "a": "No. Es un modelo heurístico de dos cuerpos con deformación visual de sprites. Ilustra las fases, no predice órbitas estelares individuales."
+          },
+          {
+            "q": "¿Qué es el parámetro de impacto b?",
+            "a": "Distancia mínima de aproximación en el plano del cielo. b=0 es choque frontal; b alto es paso lateral con menos fusión."
+          },
+          {
+            "q": "¿Puedo simular Andrómeda?",
+            "a": "Sí: usa el preset Vía Láctea–Andrómeda (M₁=1.0, M₂=1.25, b=0.5, v≈110 km/s relativo)."
+          }
+        ]
+      },
       "deep_field": {
         "id": "deep_field",
         "icon": "🔭",
@@ -439,6 +462,10 @@ export default {
     "deep_field": {
       "name": "Universo a escala",
       "subtitle": "Campo profundo · SDSS · CMB Planck · difracción estelar"
+    },
+    "galaxy_collision": {
+      "name": "Choque de galaxias",
+      "subtitle": "Marea · colas tidales · brote estelar · fusión"
     }
   },
   "featuredTheories": {
@@ -480,6 +507,14 @@ export default {
     "hawkingDeath": "Muerte por Hawking",
     "startCollision": "▶ Iniciar colisión",
     "resetBinary": "↺ Reiniciar binario",
+    "galaxy": "Choque de galaxias",
+    "galaxyM1": "M₁ galaxia (×10¹⁰ M☉)",
+    "galaxyM2": "M₂ galaxia (×10¹⁰ M☉)",
+    "impactParam": "Parámetro impacto b",
+    "relativeSpeed": "Velocidad relativa (km/s)",
+    "milkyAndromeda": "Vía Láctea–Andrómeda",
+    "startGalaxyCollision": "▶ Iniciar colisión",
+    "resetGalaxy": "↺ Reiniciar galaxias",
     "gw150914": "Preset GW150914",
     "cosmo": "Cosmología",
     "cosmoMultiverse": "Parámetros del multiverso",
@@ -590,11 +625,23 @@ export default {
       "frozen": "≈ 0% (congelado)",
       "binary": {
         "title": "Choque de agujeros negros",
-        "short": "Dos agujeros negros en espiral perdiendo energía por ondas gravitacionales (Peters, 1964). Masa reducida μ = m₁m₂/(m₁+m₂).",
-        "desc": "Al fusionarse, ~5% de la masa se irradia. El remanente oscila (ringdown) y, si está activo, se evapora por Hawking (acelerado visualmente). <em>Disclaimer:</em> inspiral validado con Peters; fusión/ringdown son fenomenológicos, no NR completa.",
+        "short": "Dos agujeros negros en espiral perdiendo energía por ondas gravitacionales (Peters, 1964). Masa reducida μ = m₁m₂/(m₁+m₂), masa de chirp ℳ.",
+        "desc": "Al fusionarse, ~5% de la masa se irradia. El remanente oscila (ringdown) y, si está activo, se evapora por Hawking (acelerado visualmente). Incluye puente de acreción, trayectorias orbitales y coalescencia visual. <em>Disclaimer:</em> inspiral validado con Peters; fusión/ringdown son fenomenológicos, no NR completa.",
         "system": "Sistema binario",
-        "hint": "💡 Observa los anillos azul-blancos expansivos desde el baricentro. En la fusión: destello dorado + pulso de memoria gravitacional.",
+        "hint": "💡 Observa los anillos GW, el puente entre discos, las trayectorias y el destello de fusión.",
         "waiting": "Configura masas y pulsa «Iniciar colisión»"
+      },
+      "galaxy": {
+        "title": "Choque de galaxias",
+        "short": "Dos galaxias espirales en interacción gravitacional: marea, colas tidales y fusión.",
+        "desc": "Modelo pedagógico de colisión galáctica con fases: acercamiento → primer paso → marea → fusión → relajación. No es N-cuerpos completo.",
+        "system": "Par de galaxias",
+        "tidal": "Fuerza de marea",
+        "tails": "Colas tidales",
+        "starburst": "Brote estelar",
+        "merger": "Progreso fusión",
+        "hint": "💡 Observa las colas que se forman y el brote en el núcleo al chocar los discos.",
+        "waiting": "Ajusta parámetros y pulsa «Iniciar colisión»"
       },
       "higgs": {
         "title": "Partícula de Higgs",
@@ -661,6 +708,25 @@ export default {
       "ringdown": "Anillo de luz (ringdown) — el horizonte oscila y se estabiliza",
       "evaporation": "El agujero negro se evapora por radiación de Hawking...",
       "dead": "Muerte del agujero negro — solo queda el vacío cuántico"
+    }
+  },
+  "galaxy": {
+    "phases": {
+      "idle": "En espera",
+      "approach": "Acercamiento",
+      "first_pass": "Primer paso",
+      "tidal": "Interacción de marea",
+      "merger": "Fusión de núcleos",
+      "relaxation": "Relajación",
+      "done": "Remanente estable"
+    },
+    "events": {
+      "approach": "Las galaxias se acercan bajo gravedad mutua...",
+      "firstPass": "¡Primer cruce! Los discos se interpenetran",
+      "tidal": "Fuerzas de marea arrancan estrellas — nacen las colas tidales",
+      "merger": "Los núcleos fusionan en una galaxia elíptica",
+      "relaxation": "El remanente se relaja; brote estelar decrece",
+      "done": "Colisión completa — galaxia elíptica gigante"
     }
   },
   "toast": {
