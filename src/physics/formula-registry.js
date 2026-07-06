@@ -247,6 +247,22 @@ export const FORMULA_REGISTRY = {
       return { value: S, unit: 'J/K', display: S / K_B, displayUnit: '×k_B' };
     },
   },
+  string_tension: {
+    id: 'string_tension',
+    name: 'Tensión de cuerda (simbólica)',
+    latex: 'T \\sim \\frac{1}{2\\pi\\alpha\' l_s^2},\\quad \\alpha\' \\sim l_P^2',
+    category: 'cuantica',
+    enabled: true,
+    compute: (ctx) => {
+      const L_PLANCK = Math.sqrt((HBAR * G) / C ** 3);
+      const alphaPrime = L_PLANCK ** 2;
+      const ls = L_PLANCK;
+      const T = 1 / (2 * Math.PI * alphaPrime * ls ** 2);
+      const rs = schwarzschildRadius(ctx.massKg);
+      const gs = Math.min(1, 1 / Math.cbrt(rs / L_PLANCK));
+      return { value: T, unit: 'N (simb.)', display: gs, displayUnit: 'g_s' };
+    },
+  },
   orbital_period: {
     id: 'orbital_period',
     name: 'Período orbital (Kepler)',

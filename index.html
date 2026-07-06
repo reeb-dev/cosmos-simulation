@@ -90,6 +90,182 @@
         border-radius: 3px;
         color: #aaccff;
       }
+      #mode-explainer {
+        position: fixed;
+        top: 58px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(520px, calc(100vw - var(--left-col) - var(--right-col) - 48px));
+        max-height: 42vh;
+        background: rgba(4, 10, 28, 0.94);
+        border: 1px solid rgba(100, 180, 255, 0.35);
+        border-radius: 10px;
+        color: #c8ddf5;
+        font-size: 12px;
+        line-height: 1.55;
+        z-index: 13;
+        backdrop-filter: blur(10px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease, max-height 0.3s ease;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      }
+      #mode-explainer.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #mode-explainer.collapsed #mode-explainer-body {
+        display: none;
+      }
+      #mode-explainer.collapsed {
+        max-height: none;
+      }
+      #mode-explainer-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(100, 160, 255, 0.15);
+        flex-shrink: 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      #mode-explainer-icon {
+        font-size: 16px;
+      }
+      #mode-explainer-title {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+      }
+      #mode-explainer-toggle,
+      #mode-explainer-dismiss {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(150, 180, 255, 0.25);
+        border-radius: 4px;
+        color: #a8c4e8;
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1;
+        padding: 3px 8px;
+      }
+      #mode-explainer-toggle:hover,
+      #mode-explainer-dismiss:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      #mode-explainer-body {
+        padding: 10px 14px 14px;
+        overflow-y: auto;
+        flex: 1;
+        font-size: 12px;
+        color: #a8b8d0;
+      }
+      #mode-explainer-body strong {
+        color: #a8d4ff;
+        font-weight: 600;
+      }
+      #mode-explainer-body h4 {
+        font-size: 11px;
+        color: #88bbff;
+        margin: 10px 0 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      #mode-explainer-body h4:first-child {
+        margin-top: 0;
+      }
+      #mode-explainer-body ol {
+        margin: 4px 0 4px 18px;
+        padding: 0;
+      }
+      #mode-explainer-body li {
+        margin-bottom: 4px;
+      }
+      #mode-explainer-body ul {
+        margin: 4px 0 4px 16px;
+        padding: 0;
+      }
+      .mode-explainer-intro {
+        color: #b8c8e0;
+        margin-bottom: 4px;
+      }
+      .mode-explainer-section {
+        margin-bottom: 4px;
+      }
+      .mode-explainer-faq {
+        margin-top: 8px;
+        border-top: 1px solid rgba(100, 160, 255, 0.12);
+        padding-top: 8px;
+      }
+      .mode-faq-item {
+        margin-bottom: 4px;
+        border: 1px solid rgba(100, 160, 255, 0.1);
+        border-radius: 6px;
+        background: rgba(8, 20, 50, 0.4);
+      }
+      .mode-faq-item summary {
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 11px;
+        color: #98b8e0;
+        list-style: none;
+      }
+      .mode-faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+      .mode-faq-item p {
+        padding: 0 10px 8px;
+        font-size: 11px;
+        color: #8899aa;
+        line-height: 1.5;
+      }
+      .mode-explainer-theory {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: rgba(80, 60, 140, 0.2);
+        border-radius: 6px;
+        border: 1px solid rgba(180, 120, 255, 0.2);
+      }
+      .mode-explainer-theory p {
+        font-size: 11px;
+        color: #c8b8e8;
+        margin: 0;
+      }
+      .theory-more-info {
+        margin-top: 8px;
+        border: 1px solid rgba(100, 160, 255, 0.15);
+        border-radius: 6px;
+        background: rgba(8, 20, 50, 0.35);
+      }
+      .theory-more-info summary {
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 11px;
+        color: #88bbff;
+        list-style: none;
+      }
+      .theory-more-info summary::-webkit-details-marker {
+        display: none;
+      }
+      .theory-summary-text {
+        padding: 0 10px 8px;
+        font-size: 11px;
+        color: #8899bb;
+        line-height: 1.5;
+        margin: 0;
+      }
+      @media (max-width: 1280px) {
+        #mode-explainer {
+          width: min(480px, calc(100vw - 32px));
+          max-height: 36vh;
+        }
+      }
       #reset-toast {
         position: fixed;
         top: 40px;
@@ -205,6 +381,16 @@
         background: rgba(255, 200, 50, 0.15);
         color: #ffcc66;
         margin-left: 6px;
+      }
+      #theory-panel .theory-physics-break {
+        display: block;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: rgba(255, 60, 100, 0.2);
+        border: 1px solid rgba(255, 80, 120, 0.4);
+        color: #ff88aa;
+        margin: 6px 0 8px;
       }
       #theory-panel .theory-hint {
         margin-top: 8px;
@@ -347,22 +533,53 @@
       }
       #lab-panel .lab-era {
         font-weight: 600;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         font-size: 12px;
       }
+      #lab-panel .lab-age {
+        font-size: 10px;
+        color: #aa99cc;
+        margin-bottom: 6px;
+      }
       #lab-panel .timeline-bar {
-        height: 6px;
-        background: #1a1a2e;
-        border-radius: 3px;
-        margin-bottom: 10px;
+        height: 8px;
+        background: linear-gradient(90deg, #1a0a2e 0%, #1a1a2e 15%, #223355 40%, #334466 60%, #445577 80%, #556688 100%);
+        border-radius: 4px;
+        margin-bottom: 4px;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
       }
       #lab-panel .timeline-fill {
         height: 100%;
-        background: linear-gradient(90deg, #6644ff, #ff44aa);
-        border-radius: 3px;
+        background: linear-gradient(90deg, #6644ff, #ff44aa, #ffaa44);
+        border-radius: 4px;
         transition: width 0.3s;
+        box-shadow: 0 0 6px rgba(255, 100, 200, 0.4);
+      }
+      #lab-panel .timeline-markers {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        pointer-events: none;
+      }
+      #lab-panel .timeline-marker {
+        position: absolute;
+        top: -2px;
+        width: 2px;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.35);
+        border-radius: 1px;
+        transform: translateX(-50%);
+      }
+      #lab-panel .timeline-eras {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 6px;
+        margin-bottom: 10px;
+        font-size: 8px;
+        color: #665588;
       }
       #lab-panel .timeline-label {
         position: absolute;
@@ -393,6 +610,120 @@
       #lab-panel .lab-err { color: #ff6666; }
       #lab-panel .lab-compare { color: #aaddff; font-size: 10px; }
       #lab-panel .lab-more { color: #665588; font-style: italic; }
+      .physics-footnote {
+        font-size: 9px;
+        color: #7788aa;
+        cursor: help;
+        margin-left: 2px;
+      }
+      #research-panel {
+        position: fixed;
+        top: 118px;
+        right: 16px;
+        width: 280px;
+        max-height: calc(100vh - 140px);
+        background: rgba(6, 10, 24, 0.93);
+        border: 1px solid rgba(80, 180, 140, 0.3);
+        border-radius: 10px;
+        color: #b8e0d0;
+        font-size: 11px;
+        z-index: 11;
+        backdrop-filter: blur(8px);
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #research-panel .panel-body {
+        padding: 0 12px 10px;
+        overflow-y: auto;
+        flex: 1;
+        pointer-events: none;
+      }
+      #research-panel h2 {
+        font-size: 14px;
+        color: #a8f0d0;
+        margin-bottom: 6px;
+      }
+      #research-panel .research-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #6688aa;
+        margin-bottom: 8px;
+      }
+      #research-panel .research-compare-title {
+        font-weight: 600;
+        color: #88ddbb;
+        margin-bottom: 4px;
+        font-size: 11px;
+      }
+      #research-panel .research-compare-legend {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 4px;
+        font-size: 9px;
+        color: #557766;
+        margin-bottom: 4px;
+        padding-left: 18px;
+      }
+      #research-panel .research-val-row {
+        display: grid;
+        grid-template-columns: 14px 1fr auto auto auto;
+        gap: 4px;
+        align-items: center;
+        padding: 3px 0;
+        border-bottom: 1px solid rgba(80, 180, 140, 0.08);
+        font-size: 10px;
+      }
+      #research-panel .val-icon { font-size: 10px; }
+      #research-panel .val-ok .val-icon { color: #66ff99; }
+      #research-panel .val-warn .val-icon { color: #ffcc66; }
+      #research-panel .val-bad .val-icon { color: #ff8866; }
+      #research-panel .val-theory { color: #88bbff; font-family: monospace; font-size: 9px; }
+      #research-panel .val-sim { color: #aaffcc; font-family: monospace; font-size: 9px; }
+      #research-panel .val-err { color: #8899aa; font-size: 9px; }
+      #research-panel .research-disclaimer {
+        font-size: 10px;
+        color: #ccaa66;
+        margin: 8px 0;
+        padding: 6px 8px;
+        background: rgba(200, 160, 60, 0.1);
+        border-radius: 4px;
+      }
+      #research-panel .research-limits {
+        margin-top: 8px;
+        border-top: 1px solid rgba(80, 180, 140, 0.15);
+        padding-top: 6px;
+      }
+      #research-panel .research-limits summary {
+        cursor: pointer;
+        color: #88ccaa;
+        font-size: 10px;
+        pointer-events: auto;
+      }
+      #research-panel .limits-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 6px;
+        font-size: 9px;
+      }
+      #research-panel .limits-grid ul {
+        margin: 4px 0 0 14px;
+        padding: 0;
+        color: #668877;
+      }
+      #research-panel .limits-note {
+        font-size: 9px;
+        color: #556655;
+        margin-top: 6px;
+        line-height: 1.4;
+      }
+      #hud .hud-seed span:last-child {
+        color: #88ffcc;
+        font-family: monospace;
+      }
       #experiment-result {
         display: none;
         position: fixed;
@@ -660,9 +991,18 @@
       <div id="guide-content"></div>
     </aside>
     <div id="help-bar">
-      <kbd>?</kbd> guía · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausar · zoom al BH = ver teoría · Tour 60s en controles
+      <kbd>?</kbd> guía · <kbd>ℹ️</kbd> explicación del modo activo · <kbd>R</kbd> reset · <kbd>Espacio</kbd> pausar · zoom al BH = ver teoría · Tour 60s en controles
     </div>
     <div id="mode-bar"><strong>Modo:</strong> <span id="mode-bar-label">Agujero negro</span></div>
+    <aside id="mode-explainer" class="collapsed" aria-label="Explicación del modo activo" aria-expanded="false">
+      <div id="mode-explainer-header">
+        <span id="mode-explainer-icon">ℹ️</span>
+        <span id="mode-explainer-title">Modo activo</span>
+        <button id="mode-explainer-dismiss" type="button" title="Cerrar">✕</button>
+        <button id="mode-explainer-toggle" type="button" title="Expandir/contraer" aria-label="Expandir o contraer">▲</button>
+      </div>
+      <div id="mode-explainer-body"></div>
+    </aside>
     <div id="reset-toast"></div>
     <div id="app"></div>
     <div id="hud">
@@ -674,6 +1014,12 @@
     <div id="theory-panel"></div>
     <div id="life-panel"></div>
     <div id="lab-panel"></div>
+    <div id="research-panel">
+      <div class="panel-header">
+        <button class="panel-toggle" type="button" aria-label="Contraer panel investigación">▼</button>
+      </div>
+      <div class="panel-body"></div>
+    </div>
     <div id="experiment-result"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

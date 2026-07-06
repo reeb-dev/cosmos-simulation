@@ -78,6 +78,7 @@ export const FORMULA_PRESETS = [
   { name: 'Redshift gravitacional', expr: '1 / sqrt(1 - rs / r) - 1' },
   { name: 'Densidad del BH', expr: 'M / (4/3 * pi * (rs/2)^3)' },
   { name: 'H² proporcional a Ω', expr: 'H0^2 * (Om/a^3 + OL)' },
+  { name: 'Tensión de cuerda', expr: '1 / (2 * pi * rs^2)' },
 ];
 
 export function saveCustomFormulas(formulas) {

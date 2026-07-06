@@ -18,6 +18,7 @@ function regimeLabel(regime) {
 function hv({
   membraneColor,
   membraneRipple = 1,
+  membraneGlitch = false,
   interiorScale = 2.5,
   crossingFlash = 'default',
   exteriorTint = [1, 1, 1],
@@ -27,6 +28,7 @@ function hv({
   return {
     membraneColor,
     membraneRipple,
+    membraneGlitch,
     interiorScale,
     crossingFlash,
     exteriorTint,
@@ -585,6 +587,59 @@ export const HORIZON_THEORIES = {
       };
     },
   },
+  string_theory: {
+    id: 'string_theory',
+    name: 'Teoría de cuerdas (★ especulativa)',
+    short: 'El interior es un paisaje de dimensiones extra: cuerdas vibrantes, branas y el gravitón como estado cerrado.',
+    description:
+      'La teoría de cuerdas postula que las partículas fundamentales no son puntos sino filamentos unidimensionales — cuerdas abiertas y cerradas — cuya vibración determina la masa y la carga. Para reconciliar cuántica y gravedad, el espacio-tiempo necesita dimensiones adicionales compactificadas (a menudo en variedades tipo Calabi-Yau del tamaño de la escala de Planck). El gravitón emerge como modo de vibración de una cuerda cerrada sin extremos.\n\n' +
+      'En el contexto del agujero negro, la correspondencia AdS/CFT sugiere que el interior volumétrico es dual a una teoría de campos conforme en el horizonte 2D; la propuesta fuzzball de Mathur es un límite concreto donde micro-estados de cuerdas extendidas reemplazan el horizonte clásico. La entropía de Bekenstein-Hawking S = k_B c³A/(4Gℏ) se interpreta como conteo de modos vibracionales y configuraciones de cuerdas a escala l_P, con acoplamiento g_s y radio de compactificación R que dependen simbólicamente de la masa M.\n\n' +
+      'Al cruzar el horizonte en esta visualización, entras a un bulk con branas D translúcidas, planos de dimensiones extra ortogonales y cuerdas que oscilan a distintas frecuencias — un modelo pedagógico, no una predicción observacional directa.',
+    status: 'Especulativa ★',
+    color: 0xbb66ff,
+    original: true,
+    speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0xbb66ff,
+      membraneRipple: 1.4,
+      interiorScale: 2.8,
+      crossingFlash: 'string_resonance',
+      exteriorTint: [0.7, 0.5, 1.3],
+      probeTrailColor: 0xcc88ff,
+      crossingDescription:
+        'La membrana vibra como una cuerda tensa: resonancia armónica al cruzar hacia el bulk de dimensiones extra.',
+    }),
+    physicsBasis:
+      'Dimensiones extra compactificadas (radio R simbólico ∝ l_P√(rₛ/l_P)), gravitón como cuerda cerrada, conexión AdS/CFT con entropía del horizonte, relación fuzzball–micro-estados, escala de Planck l_P = √(ℏG/c³), rₛ y ratio rₛ/l_P desde masa simulada, entropía Hawking como conteo de modos.',
+    computeReadouts(simContext) {
+      const { universe } = simContext;
+      const massKg = universe.massKg;
+      const rs = schwarzschildRadius(massKg);
+      const ratio = rs / L_PLANCK;
+      const A = 4 * Math.PI * rs * rs;
+      const S = (K_B * C ** 3 * A) / (4 * G * HBAR);
+      const alphaPrime = L_PLANCK ** 2;
+      const ls = L_PLANCK;
+      const gs = Math.min(1, 1 / Math.cbrt(ratio));
+      const Rcompact = L_PLANCK * Math.sqrt(Math.max(1, ratio));
+      const nModes = Math.floor(Math.sqrt(ratio));
+      const Tstring = 1 / (2 * Math.PI * alphaPrime * ls ** 2);
+      const microStates = S / K_B;
+      const bekensteinBound = (2 * Math.PI * rs * massKg * C) / HBAR;
+      return {
+        rows: [
+          { label: 'rₛ', value: rs.toExponential(2), unit: 'm' },
+          { label: 'l_P', value: L_PLANCK.toExponential(2), unit: 'm' },
+          { label: 'g_s (simb.)', value: gs.toExponential(2), unit: 'adim' },
+          { label: 'R compact.', value: Rcompact.toExponential(2), unit: 'm' },
+          { label: 'Modos n', value: String(nModes), unit: 'vibración' },
+          { label: 'S (cuerdas)', value: (S / K_B).toExponential(2), unit: '× k_B' },
+          { label: 'Límite Bekenstein', value: bekensteinBound.toExponential(2), unit: 'adim' },
+          { label: 'T cuerda (simb.)', value: Tstring.toExponential(2), unit: 'N' },
+        ],
+      };
+    },
+  },
   fuzzball: {
     id: 'fuzzball',
     name: 'Fuzzball (cuerdas)',
@@ -788,6 +843,525 @@ export const HORIZON_THEORIES = {
       };
     },
   },
+  cosmic_inflation: {
+    id: 'cosmic_inflation',
+    name: 'Inflación cósmica',
+    short: 'El interior es el campo inflatón en expansión exponencial.',
+    description:
+      'La teoría de la inflación propone que el universo temprano experimentó una expansión exponencial impulsada por un campo escalar (inflatón). El horizonte del agujero negro, en esta lectura cosmológica, sería una región donde la energía de vacío domina y el espacio se estira más rápido que la luz localmente. El interior no es materia colapsada sino el mismo mecanismo que expandió el cosmos a escala microscópica.',
+    status: 'Marco cosmológico',
+    color: 0xff44ff,
+    speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0xff44ff,
+      membraneRipple: 1.5,
+      interiorScale: 3.0,
+      crossingFlash: 'baby_expand',
+      exteriorTint: [1.3, 0.4, 1.2],
+      probeTrailColor: 0xff88ff,
+      crossingDescription:
+        'Un campo inflatón violeta que estira el espacio exponencialmente: burbujas cuánticas en expansión ultra-rápida.',
+    }),
+    physicsBasis:
+      'Escala de Hubble de inflación H_inf ~ 10¹³ GeV, comparación con H₀ actual, factor de escala a(t) y redshift z del solver Friedmann.',
+    computeReadouts(simContext) {
+      const { universe } = simContext;
+      const readouts = universe.getReadouts();
+      const H0si = (universe.cosmology.H0 * 1000) / 3.086e22;
+      const eFoldings = 60;
+      const HinfRatio = 1e26;
+      return {
+        rows: [
+          { label: 'H₀ actual', value: readouts.H.toFixed(2), unit: 'km/s/Mpc' },
+          { label: 'H_inf / H₀ (orden)', value: HinfRatio.toExponential(0), unit: 'adim' },
+          { label: 'e-folds típicos', value: String(eFoldings), unit: 'N' },
+          { label: 'a(t) simulado', value: readouts.a.toFixed(6), unit: '' },
+          { label: 'z', value: readouts.z.toFixed(4), unit: '' },
+          { label: 'Edad cósmica', value: universe.cosmology.universeAgeGyr().toFixed(2), unit: 'Gyr' },
+        ],
+      };
+    },
+  },
+  dark_matter: {
+    id: 'dark_matter',
+    name: 'Materia oscura',
+    short: 'Un halo invisible distorsiona la luz y la dinámica interior.',
+    description:
+      'La materia oscura constituye ~27% del universo pero no emite luz. En el interior del horizonte, esta lectura postula un halo de materia oscura no bariónica (WIMPs, axiones) que distorsiona geodésicas y produce lensing gravitacional sin contrapartida luminosa. Las galaxias y estrellas visibles orbitan en un potencial dominado por masa invisible.',
+    status: 'Observación cosmológica',
+    color: 0x4466aa,
+    horizonVisual: hv({
+      membraneColor: 0x4466aa,
+      membraneRipple: 0.9,
+      interiorScale: 2.6,
+      crossingFlash: 'blue_scan',
+      exteriorTint: [0.4, 0.55, 1.2],
+      probeTrailColor: 0x6688cc,
+      crossingDescription:
+        'Un halo azul oscuro invisible al ojo pero detectable por lensing: curvas de luz sin fuente luminosa.',
+    }),
+    physicsBasis:
+      'Ωₘ del cosmology simulado, fracción de materia oscura ~0.85·Ωₘ, lensing θ_E ~ 2rₛ/d, masa dinámica vs luminosa.',
+    computeReadouts(simContext) {
+      const { universe } = simContext;
+      const { OmegaM, OmegaLambda } = universe.cosmology;
+      const omegaDm = OmegaM * 0.85;
+      const omegaBaryon = OmegaM * 0.15;
+      const rs = universe.rsVis;
+      const dLens = 80;
+      const thetaE = (2 * rs / dLens) * (180 / Math.PI) * 3600;
+      return {
+        rows: [
+          { label: 'Ω_DM (est.)', value: omegaDm.toFixed(3), unit: '' },
+          { label: 'Ω_baryón', value: omegaBaryon.toFixed(3), unit: '' },
+          { label: 'Ω_Λ', value: OmegaLambda.toFixed(3), unit: '' },
+          { label: 'θ_E hint', value: thetaE.toFixed(2), unit: 'arcsec (vis)' },
+          { label: 'Masa BH', value: universe.blackHoleMassSolar.toFixed(1), unit: 'M☉' },
+          { label: 'Ratio DM/BH', value: (omegaDm / 0.01).toExponential(1), unit: 'cosmo/BH' },
+        ],
+      };
+    },
+  },
+  dark_energy: {
+    id: 'dark_energy',
+    name: 'Energía oscura (Λ)',
+    short: 'La constante cosmológica acelera el interior como el universo.',
+    description:
+      'La energía oscura (~70% del universo) impulsa la aceleración cósmica actual. Al cruzar el horizonte bajo esta teoría, el interior no colapsa sino que hereda la expansión acelerada dominada por Λ: el espacio se estira exponencialmente a largo plazo, diluyendo cualquier materia que cruce. Es el mismo destino térmico que el cosmos exterior en un universo ΛCDM.',
+    status: 'Observación cosmológica',
+    color: 0xaa44ff,
+    horizonVisual: hv({
+      membraneColor: 0xaa44ff,
+      membraneRipple: 1.1,
+      interiorScale: 2.8,
+      crossingFlash: 'friedmann_shells',
+      exteriorTint: [0.9, 0.4, 1.3],
+      probeTrailColor: 0xcc77ff,
+      crossingDescription:
+        'Capas púrpuras que se aceleran hacia afuera: la constante cosmológica estira el interior sin fin.',
+    }),
+    physicsBasis:
+      'Ω_Λ, parámetro de desaceleración q(a), H(a) = H₀√(Ωₘ/a³ + Ω_Λ), w = −1 para Λ pura.',
+    computeReadouts(simContext) {
+      const { universe } = simContext;
+      const readouts = universe.getReadouts();
+      const { OmegaM, OmegaLambda, H0 } = universe.cosmology;
+      const a = readouts.a;
+      const E = Math.sqrt(OmegaM / a ** 3 + OmegaLambda);
+      const q = OmegaM / (2 * a ** 3 * E ** 2) - OmegaLambda;
+      const w = -1;
+      return {
+        rows: [
+          { label: 'Ω_Λ', value: OmegaLambda.toFixed(3), unit: '' },
+          { label: 'q(a)', value: q.toFixed(4), unit: 'adim' },
+          { label: 'w (Λ)', value: w.toFixed(2), unit: 'adim' },
+          { label: 'H(t)', value: readouts.H.toFixed(2), unit: 'km/s/Mpc' },
+          { label: 'Aceleración', value: q < 0 ? 'Sí (Λ dom.)' : 'No', unit: '' },
+          { label: 'Destino', value: 'expansión eterna', unit: '' },
+        ],
+      };
+    },
+  },
+  cosmic_strings: {
+    id: 'cosmic_strings',
+    name: 'Cuerdas cósmicas',
+    short: 'Defectos topológicos de 1D cruzan el horizonte.',
+    description:
+      'Las cuerdas cósmicas son defectos topológicos unidimensionales formados en transiciones de fase del universo temprano. Tensión μ ~ 10²² g/cm las hace supermasivas: curvan el espacio en ángulos cónicos sin masa local. El interior del agujero negro, en este modelo, estaría atravesado por redes de cuerdas que conectan regiones del espacio-tiempo como cicatrices del Big Bang.',
+    status: 'Hipotético',
+    color: 0x44ff88,
+    speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0x44ff88,
+      membraneRipple: 1.2,
+      interiorScale: 2.5,
+      crossingFlash: 'green_foam',
+      exteriorTint: [0.4, 1.1, 0.6],
+      probeTrailColor: 0x66ffaa,
+      crossingDescription:
+        'Filamentos verdes luminosos: defectos topológicos 1D que cortan el espacio como cicatrices.',
+    }),
+    physicsBasis:
+      'Tensión de cuerda μ, ángulo de déficit δ = 8πGμ/c², escala GUT ~ 10¹⁶ GeV, redshift z del cosmos simulado.',
+    computeReadouts(simContext) {
+      const { universe } = simContext;
+      const G = 6.674e-11;
+      const C = 2.998e8;
+      const mu = 1e-3;
+      const delta = (8 * Math.PI * G * mu) / (C * C);
+      const deltaArcsec = delta * (180 / Math.PI) * 3600;
+      return {
+        rows: [
+          { label: 'μ (GUT escala)', value: mu.toExponential(1), unit: 'kg/m' },
+          { label: 'δ déficit', value: delta.toExponential(2), unit: 'rad' },
+          { label: 'δ', value: deltaArcsec.toExponential(1), unit: 'arcsec' },
+          { label: 'z cósmico', value: universe.cosmology.redshift.toFixed(4), unit: '' },
+          { label: 'Red de cuerdas', value: 'topológica 1D', unit: '' },
+        ],
+      };
+    },
+  },
+  lqg_bounce: {
+    id: 'lqg_bounce',
+    name: 'Rebote (gravedad cuántica de bucles)',
+    short: 'La singularidad se reemplaza por un rebote cuántico.',
+    description:
+      'La gravedad cuántica de bucles (LQG) predice que la densidad máxima es finita (~ρ_Planck): el colapso se detiene y rebota. No hay r = 0. El interior del agujero negro sería una región de espaciotiempo que emerge de un "Big Bounce" cuántico, conectada al exterior por el horizonte como frontera térmica. Es la alternativa más estudiada a la singularidad clásica.',
+    status: 'Investigación activa',
+    color: 0x66ffcc,
+    speculative: true,
+    horizonVisual: hv({
+      membraneColor: 0x66ffcc,
+      membraneRipple: 1.4,
+      interiorScale: 2.7,
+      crossingFlash: 'planck_lattice',
+      exteriorTint: [0.4, 1.2, 0.9],
+      probeTrailColor: 0x88ffdd,
+      crossingDescription:
+        'Una esfera cian que rebota: la densidad de Planck detiene el colapso y el espacio repunta hacia afuera.',
+    }),
+    physicsBasis:
+      'Densidad de Planck ρ_P, radio de rebote r_b ~ rₛ·(ρ_BH/ρ_P)^(1/3), área mínima cuantizada en LQG, masa M simulada.',
+    computeReadouts(simContext) {
+      const { universe, horizonSim } = simContext;
+      const massKg = universe.massKg;
+      const rs = schwarzschildRadius(massKg);
+      const rhoP = (C ** 5) / (HBAR * G ** 2);
+      const rhoBh = massKg / ((4 / 3) * Math.PI * rs ** 3);
+      const bounceR = rs * Math.cbrt(rhoBh / rhoP);
+      const aMin = Math.sqrt(4 * Math.PI * G * HBAR / (C ** 3 * rs ** 2));
+      return {
+        rows: [
+          { label: 'ρ_Planck', value: rhoP.toExponential(2), unit: 'kg/m³' },
+          { label: 'ρ_BH', value: rhoBh.toExponential(2), unit: 'kg/m³' },
+          { label: 'Radio rebote', value: bounceR.toExponential(2), unit: 'm' },
+          { label: 'Área mín. LQG', value: aMin.toExponential(2), unit: 'm²' },
+          { label: 'Dilatación sonda', value: (horizonSim.effectiveTimeDilation * 100).toFixed(2), unit: '%' },
+        ],
+      };
+    },
+  },
+  time_loop: {
+    id: 'time_loop',
+    name: 'Cerradura temporal (CTC)',
+    short: 'Curvas cerradas de tipo tiempo: el interior es el exterior en bucle.',
+    description:
+      'Ficción de ruptura física: el espaciotiempo se enrolla como una banda de Möbius. Cruzar el horizonte no te lleva «adelante» sino a una región donde el futuro es pasado y el exterior es interior. Los relojes giran al revés; la causalidad local se cierra en un bucle perfecto — algo que la Relatividad General solo tolera bajo materia exótica imposible y que aquí se asume a propósito.',
+    status: 'Ruptura física ★★',
+    color: 0xff44aa,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xff44aa,
+      membraneRipple: 2.2,
+      membraneGlitch: true,
+      interiorScale: 2.6,
+      crossingFlash: 'time_reverse',
+      exteriorTint: [1.3, 0.3, 0.9],
+      probeTrailColor: 0xff66cc,
+      crossingDescription:
+        'La membrana se retuerce en Möbius: relojes invertidos y el exterior reaparece dentro del bucle temporal.',
+    }),
+    physicsBasis:
+      'La GR permite CTC solo con condiciones de energía violadas (condición de energía débil). Aquí se viola a propósito: dilatación √(1−rₛ/r) invertida simbólicamente, flecha temporal Δt < 0 en la sonda.',
+    computeReadouts(simContext) {
+      const { horizonSim } = simContext;
+      const dilation = horizonSim.effectiveTimeDilation;
+      const loopIndex = 1 / Math.max(dilation, 1e-6);
+      const paradox = Math.min(1, loopIndex * dilation);
+      return {
+        rows: [
+          { label: 'Índice de bucle', value: loopIndex.toFixed(3), unit: 'adim' },
+          { label: 'Δt sonda (simb.)', value: (-dilation * 100).toFixed(2), unit: '% (rev)' },
+          { label: 'Paradoja CTC', value: (paradox * 100).toFixed(1), unit: '%' },
+          { label: 'Causalidad', value: 'Cerrada', unit: '⚠' },
+          { label: 'Modo', value: 'Ruptura ★★', unit: '' },
+        ],
+      };
+    },
+  },
+  gravity_off: {
+    id: 'gravity_off',
+    name: 'Gravedad desactivada',
+    short: 'G → 0 dentro del horizonte: nada atrae, todo flota.',
+    description:
+      'Ruptura física deliberada: al cruzar el horizonte la constante gravitacional local cae a cero. Las ecuaciones de Einstein dejan de acoplar masa y curvatura; el disco de acreción se invierte y los escombros flotan en lugar de caer. Es el opuesto pedagógico de Schwarzschild: un interior sin peso donde la gravedad fue «apagada» como un interruptor.',
+    status: 'Ruptura física ★★',
+    color: 0x88ddff,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0x88ddff,
+      membraneRipple: 1.8,
+      membraneGlitch: true,
+      interiorScale: 2.4,
+      crossingFlash: 'gravity_invert',
+      exteriorTint: [0.5, 1.2, 1.4],
+      probeTrailColor: 0xaaeeff,
+      crossingDescription:
+        'Un chasquido de gravedad invertida: escombros flotando y el disco de acreción boca arriba sin atraer nada.',
+    }),
+    physicsBasis:
+      'Newton: F = Gm₁m₂/r² con G_eff = 0 dentro de rₛ. Viola el principio de equivalencia y la curvatura de Einstein (G_μν = 8πG T_μν → plano con T ≠ 0).',
+    computeReadouts(simContext) {
+      const { universe, horizonSim } = simContext;
+      const massKg = universe.massKg;
+      const r = horizonSim.probeRadius;
+      const rM = r * 1e10;
+      const gNewton = (6.674e-11 * massKg) / (rM * rM);
+      return {
+        rows: [
+          { label: 'G exterior', value: '6.674e-11', unit: 'm³/kg/s²' },
+          { label: 'G interior', value: '0', unit: '⚠ apagado' },
+          { label: 'g Newton (ref.)', value: gNewton.toExponential(2), unit: 'm/s²' },
+          { label: 'g interior', value: '0', unit: 'm/s²' },
+          { label: 'Equivalencia', value: 'Violada', unit: '' },
+        ],
+      };
+    },
+  },
+  negative_mass: {
+    id: 'negative_mass',
+    name: 'Materia de masa negativa',
+    short: 'Repulsión gravitatoria: el horizonte se expande hacia afuera.',
+    description:
+      'Si existiera materia con m < 0, la gravedad sería repulsiva. En esta ficción el interior del agujero negro está lleno de ella: las partículas huyen del centro, el horizonte parece crecer hacia el exterior y el colapso se invierte. La física real no permite masa negativa estable sin violar las condiciones de energía; aquí es el punto.',
+    status: 'Ruptura física ★★',
+    color: 0xff6688,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xff6688,
+      membraneRipple: 2.0,
+      membraneGlitch: true,
+      interiorScale: 2.8,
+      crossingFlash: 'gravity_invert',
+      exteriorTint: [1.4, 0.4, 0.6],
+      probeTrailColor: 0xff88aa,
+      crossingDescription:
+        'Partículas de masa negativa huyen del centro mientras el horizonte se hincha hacia afuera como un globo repulsivo.',
+    }),
+    physicsBasis:
+      'F = G m₁m₂/r² con m₂ < 0 invierte la fuerza. Viola condiciones de energía (WEC/NEC). Radio de horizonte simbólico rₛ_eff = rₛ·(1 + |m_neg|/M).',
+    computeReadouts(simContext) {
+      const { universe, horizonSim } = simContext;
+      const rs = universe.rsVis;
+      const negFraction = 0.35;
+      const rEff = rs * (1 + negFraction);
+      const repulsion = negFraction * (horizonSim.probeRadius / rs);
+      return {
+        rows: [
+          { label: 'Masa BH', value: universe.blackHoleMassSolar.toFixed(1), unit: 'M☉' },
+          { label: 'Masa neg. (simb.)', value: (-universe.blackHoleMassSolar * negFraction).toFixed(2), unit: 'M☉' },
+          { label: 'rₛ efectivo', value: rEff.toFixed(2), unit: 'u.vis' },
+          { label: 'Fuerza (signo)', value: '+ (repulsiva)', unit: '⚠' },
+          { label: 'Índice expansión', value: (repulsion * 100).toFixed(1), unit: '%' },
+        ],
+      };
+    },
+  },
+  causality_shatter: {
+    id: 'causality_shatter',
+    name: 'Causa-efecto invertido',
+    short: 'Los efectos preceden a las causas; la flecha temporal se rompe.',
+    description:
+      'Interior donde la correlación temporal se invierte: ves el resultado antes del origen. Fragmentos de línea temporal flotan como esquirlas de cristal; eventos se rebobinan. Viola el principio de causalidad de la relatividad (conos de luz) y la termodinámica de flecha temporal. Etiquetado explícitamente como ficción de ruptura.',
+    status: 'Ruptura física ★★',
+    color: 0xffaa33,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xffaa33,
+      membraneRipple: 2.1,
+      membraneGlitch: true,
+      interiorScale: 2.5,
+      crossingFlash: 'time_reverse',
+      exteriorTint: [1.3, 0.9, 0.2],
+      probeTrailColor: 0xffcc55,
+      crossingDescription:
+        'Esquirlas de línea temporal rotas: los eventos se deshacen hacia atrás mientras los efectos brillan antes que sus causas.',
+    }),
+    physicsBasis:
+      'Causalidad: intervalo tipo tiempo exige que efectos sigan causas. Aquí Δt_causal < 0 simbólico; entropía local decrece (violación 2.ª ley etiquetada).',
+    computeReadouts(simContext) {
+      const { universe, engine } = simContext;
+      const tSim = engine?.clock ?? 0;
+      const reversed = -tSim;
+      const shards = Math.floor(Math.abs(Math.sin(tSim * 0.5)) * 12) + 3;
+      const entropySign = -1;
+      return {
+        rows: [
+          { label: 't simulado', value: tSim.toFixed(2), unit: 's' },
+          { label: 't causal (inv.)', value: reversed.toFixed(2), unit: 's ⚠' },
+          { label: 'Esquirlas activas', value: String(shards), unit: 'eventos' },
+          { label: 'ΔS (signo)', value: String(entropySign), unit: '⚠ 2.ª ley' },
+          { label: 'Causalidad', value: 'Rota', unit: '' },
+        ],
+      };
+    },
+  },
+  infinite_density_bounce: {
+    id: 'infinite_density_bounce',
+    name: 'Rebote de densidad infinita',
+    short: 'ρ → ∞ sin singularidad: rebote con G negativo efectivo.',
+    description:
+      'Un núcleo alcanza densidad infinita pero, en lugar de r = 0, rebota con gravedad efectiva negativa. Oscila eternamente entre colapso y expansión. Combina dos imposibilidades: singularidad sin tragar información y G < 0 local. Visual: núcleo pulsante que nunca se detiene.',
+    status: 'Ruptura física ★★',
+    color: 0xff5522,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xff5522,
+      membraneRipple: 1.9,
+      membraneGlitch: true,
+      interiorScale: 2.7,
+      crossingFlash: 'gravity_invert',
+      exteriorTint: [1.4, 0.35, 0.1],
+      probeTrailColor: 0xff7744,
+      crossingDescription:
+        'Un núcleo naranja oscila entre colapso infinito y rebote repulsivo: densidad ∞ sin punto, G efectivo negativo.',
+    }),
+    physicsBasis:
+      'ρ → ∞ pero V → 0 sin métrica singular; rebote con G_eff < 0. Viola teorema de Penrose (condiciones de energía) y positividad de G.',
+    computeReadouts(simContext) {
+      const { universe, horizonSim } = simContext;
+      const massKg = universe.massKg;
+      const rs = schwarzschildRadius(massKg);
+      const rho = massKg / ((4 / 3) * Math.PI * (rs * 0.01) ** 3);
+      const phase = Math.sin((horizonSim.probeRadius / horizonSim.rs) * Math.PI);
+      return {
+        rows: [
+          { label: 'ρ core (simb.)', value: '∞', unit: 'kg/m³ ⚠' },
+          { label: 'ρ finita ref.', value: rho.toExponential(2), unit: 'kg/m³' },
+          { label: 'G_eff', value: (phase < 0 ? -1 : 1).toFixed(0), unit: '× G ⚠' },
+          { label: 'Fase rebote', value: (phase * 100).toFixed(0), unit: '%' },
+          { label: 'r singular', value: '0 (evitado)', unit: '' },
+        ],
+      };
+    },
+  },
+  chronology_horizon: {
+    id: 'chronology_horizon',
+    name: 'Horizonte cronológico',
+    short: 'Frontera temporal, no espacial: el tiempo se derrite al cruzar.',
+    description:
+      'El horizonte no es una superficie en r = cte sino una frontera entre eras temporales. Relojes se derriten literalmente; vectores de tiempo apuntan en direcciones imposibles. Inspirado en la conjetura de protección cronológica de Hawking — pero aquí la violamos a propósito para explorar paradojas.',
+    status: 'Ruptura física ★★',
+    color: 0xffdd55,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xffdd55,
+      membraneRipple: 2.3,
+      membraneGlitch: true,
+      interiorScale: 2.4,
+      crossingFlash: 'time_reverse',
+      exteriorTint: [1.2, 1.0, 0.3],
+      probeTrailColor: 0xffee66,
+      crossingDescription:
+        'Relojes derretidos y flechas de tiempo que apuntan en todas las direcciones: el horizonte es una frontera temporal.',
+    }),
+    physicsBasis:
+      'Hawking: protección cronológica sugiere que la física impide CTC. Aquí el horizonte es τ = cte, no r = rₛ; dilatación √(1−rₛ/r) reemplazada por flujo temporal arbitrario.',
+    computeReadouts(simContext) {
+      const { horizonSim } = simContext;
+      const dilation = horizonSim.effectiveTimeDilation;
+      const chronology = 1 - dilation;
+      const vectors = Math.floor(chronology * 8) + 1;
+      return {
+        rows: [
+          { label: 'Tipo horizonte', value: 'Temporal', unit: '⚠ no espacial' },
+          { label: 'Dilatación', value: (dilation * 100).toFixed(2), unit: '%' },
+          { label: 'Flujo τ', value: chronology.toFixed(3), unit: 'adim' },
+          { label: 'Vectores tiempo', value: String(vectors), unit: 'direcciones' },
+          { label: 'Protección Hawking', value: 'Violada', unit: '' },
+        ],
+      };
+    },
+  },
+  antigravity_core: {
+    id: 'antigravity_core',
+    name: 'Núcleo antigravitatorio',
+    short: 'Un vacío central repele toda la materia (torsión fantástica).',
+    description:
+      'Fantasía inspirada en Einstein-Cartan con torsión extrema: el centro no atrae sino que repele. Una burbuja de vacío antigravitatorio empuja disco, partículas y luz hacia el horizonte interior. Viola el teorema de energía positiva y cualquier forma razonable de la ecuación de campo.',
+    status: 'Ruptura física ★★',
+    color: 0x66ffdd,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0x66ffdd,
+      membraneRipple: 1.7,
+      membraneGlitch: true,
+      interiorScale: 2.6,
+      crossingFlash: 'gravity_invert',
+      exteriorTint: [0.4, 1.3, 1.1],
+      probeTrailColor: 0x88ffee,
+      crossingDescription:
+        'Una burbuja de vacío cian repele todo hacia fuera: el núcleo es ausencia que empuja en lugar de atraer.',
+    }),
+    physicsBasis:
+      'Einstein-Cartan real añade torsión a la conexión; aquí la torsión genera repulsión central imposible. Viola teorema de energía positivo (ADM) y condición de energía.',
+    computeReadouts(simContext) {
+      const { universe, horizonSim } = simContext;
+      const rs = universe.rsVis;
+      const bubbleR = rs * 0.25;
+      const push = (bubbleR / Math.max(horizonSim.probeRadius, 0.1)) ** 2;
+      return {
+        rows: [
+          { label: 'Radio burbuja', value: bubbleR.toFixed(2), unit: 'u.vis' },
+          { label: 'Presión vacío', value: (-push * 1e12).toExponential(2), unit: 'Pa ⚠' },
+          { label: 'Torsión (simb.)', value: '∞', unit: 'Cartan' },
+          { label: 'E total', value: '< 0', unit: '⚠' },
+          { label: 'Atracción core', value: 'Repulsiva', unit: '' },
+        ],
+      };
+    },
+  },
+  paradox_engine: {
+    id: 'paradox_engine',
+    name: 'Máquina de paradojas',
+    short: 'La información crea y destruye masa; la entropía puede decrecer.',
+    description:
+      'El interior es un motor que convierte bits en gramos y viceversa. Cada paradoja lógica (bootstrap, abuelo, información sin origen) alimenta el núcleo. La entropía decrece visiblemente — violación flagrante de la segunda ley, etiquetada en pantalla. Puramente ficción para explorar límites conceptuales.',
+    status: 'Ruptura física ★★',
+    color: 0xcc44ff,
+    fiction: true,
+    physicsBreak: true,
+    horizonVisual: hv({
+      membraneColor: 0xcc44ff,
+      membraneRipple: 2.4,
+      membraneGlitch: true,
+      interiorScale: 2.9,
+      crossingFlash: 'time_reverse',
+      exteriorTint: [1.1, 0.3, 1.4],
+      probeTrailColor: 0xdd66ff,
+      crossingDescription:
+        'Engranajes de paradoja violetas: información se condensa en masa y la entropía baja con cada vuelta del motor.',
+    }),
+    physicsBasis:
+      'E = mc² + k_B T ln(2)·I (Landauer extendido ficticio). Aquí Δm = f(paradoja) y ΔS < 0 permitido. Viola conservación de energía, información y segunda ley.',
+    computeReadouts(simContext) {
+      const { universe, engine } = simContext;
+      const massKg = universe.massKg;
+      const rs = schwarzschildRadius(massKg);
+      const A = 4 * Math.PI * rs * rs;
+      const S = (K_B * C ** 3 * A) / (4 * G * HBAR);
+      const tSim = engine?.clock ?? 0;
+      const paradoxIndex = Math.min(1, (Math.sin(tSim * 0.3) + 1) * 0.5);
+      const entropyDelta = -paradoxIndex * (S / K_B) * 0.001;
+      const massDelta = paradoxIndex * massKg * 1e-30;
+      return {
+        rows: [
+          { label: 'Índice paradoja', value: paradoxIndex.toFixed(3), unit: 'adim' },
+          { label: 'ΔS', value: entropyDelta.toExponential(2), unit: '× k_B ⚠' },
+          { label: 'Δm (bits→masa)', value: massDelta.toExponential(2), unit: 'kg' },
+          { label: '2.ª ley', value: 'Violada', unit: '⚠' },
+          { label: 'E total', value: 'E < 0 posible', unit: '⚠' },
+        ],
+      };
+    },
+  },
   omega_multiverse: {
     id: 'omega_multiverse',
     name: 'Multiverso por Ω (teoría propia)',
@@ -835,6 +1409,9 @@ export const HORIZON_THEORIES = {
 
 export const THEORY_IDS = Object.keys(HORIZON_THEORIES);
 export const DEFAULT_THEORY = 'hybrid_regime';
+
+/** Teorías que violan física conocida a propósito (ficción ★★ Ruptura). */
+export const PHYSICS_BREAK_THEORY_IDS = THEORY_IDS.filter((id) => HORIZON_THEORIES[id].physicsBreak);
 
 export const PROBE_STATE = {
   IDLE: 'idle',

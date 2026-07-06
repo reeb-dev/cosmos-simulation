@@ -25,6 +25,9 @@ const FLASH_INDEX = {
   planck_lattice: 21,
   ads_bulk: 22,
   multiverse_fork: 23,
+  string_resonance: 24,
+  time_reverse: 25,
+  gravity_invert: 26,
 };
 
 function colorToVec3(hex, target) {
@@ -103,6 +106,22 @@ export function createHorizonTransition(camera) {
           col = mix(vec3(0.1, 0.6, 1.0), vec3(1.0, 0.3, 0.8), sin(time * 8.0) * 0.5 + 0.5);
         } else if (flashType < 10.5) {
           col = mix(flashColor, vec3(1.0) - flashColor, step(0.5, fract(time * 3.0)));
+        } else if (flashType > 23.5 && flashType < 24.5) {
+          float harmonics = sin(uv.x * 80.0 + time * 12.0) * sin(uv.y * 60.0 - time * 9.0);
+          float resonance = sin(dist * 40.0 - time * 15.0) * 0.5 + 0.5;
+          col = mix(vec3(0.5, 0.2, 1.0), vec3(0.9, 0.6, 1.0), harmonics * 0.5 + 0.5);
+          col = mix(col, vec3(1.0, 0.8, 1.0), resonance * 0.4);
+          alpha *= 0.85 + resonance * 0.15;
+        } else if (flashType > 24.5 && flashType < 25.5) {
+          float rewind = sin(dist * 50.0 + time * 18.0);
+          col = mix(vec3(0.9, 0.2, 0.6), vec3(0.3, 0.8, 1.0), rewind * 0.5 + 0.5);
+          alpha *= 0.9 - dist * 0.3;
+          col.rgb = mix(col.rgb, col.gbr, step(0.5, fract(time * 4.0)));
+        } else if (flashType > 25.5) {
+          float invert = sin(time * 10.0 + dist * 30.0) * 0.5 + 0.5;
+          col = mix(vec3(0.2, 0.9, 1.0), vec3(1.0, 0.3, 0.2), invert);
+          alpha *= 1.0 - dist * 0.4;
+          col.rgb = mix(col.rgb, vec3(1.0) - col.rgb, step(0.7, fract(uv.y * 20.0 - time * 5.0)));
         } else {
           col = flashColor * (0.7 + 0.3 * sin(time * 6.0 + dist * 10.0));
         }

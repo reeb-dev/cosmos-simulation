@@ -23,7 +23,7 @@ export const SIMULATION_MODES = {
   multiverse: {
     id: 'multiverse',
     name: 'Multiverso',
-    subtitle: 'Burbujas de Friedmann · ramas Ωₘ/ΩΛ · portal central',
+    subtitle: 'Burbujas Friedmann · aceleración Λ · ramas Ωₘ/ΩΛ · portal',
     camera: { x: 0, y: 25, z: 85, tx: 0, ty: 5, tz: 0 },
     maxDistance: 250,
     minDistanceFactor: 0.2,
@@ -60,7 +60,7 @@ export const SIMULATION_MODES = {
   cosmology: {
     id: 'cosmology',
     name: 'Cosmología ΛCDM',
-    subtitle: 'Expansión cósmica · agujero negro mínimo',
+    subtitle: 'Campo galáctico · redshift · Hubble flow · CMB · BH mínimo',
     camera: { x: 0, y: 80, z: 200, tx: 0, ty: 0, tz: 0 },
     maxDistance: 600,
     minDistanceFactor: 0.5,
@@ -89,8 +89,29 @@ export const SIMULATION_MODES = {
       interior: true,
       multiverse: false,
       higgs: false,
+      string: false,
       bhScale: 1,
       bhOpacity: 1,
+    },
+  },
+  string_theory: {
+    id: 'string_theory',
+    name: 'Teoría de cuerdas',
+    subtitle: 'Cuerdas vibrantes · branas colisionando · vuelo a lo largo de una cuerda',
+    camera: { x: 0, y: 15, z: 80, tx: 0, ty: 0, tz: 0 },
+    maxDistance: 300,
+    minDistanceFactor: 0.2,
+    fogDensity: 0.0005,
+    autoTheory: 'string_theory',
+    scene: {
+      exterior: false,
+      horizon: false,
+      interior: false,
+      multiverse: false,
+      higgs: false,
+      string: true,
+      bhScale: 0,
+      bhOpacity: 0,
     },
   },
   binary_merger: {
@@ -120,12 +141,25 @@ export const DEFAULT_MODE = 'black_hole';
 /** Teorías destacadas para el selector rápido */
 export const FEATURED_THEORIES = [
   { id: 'singularity', label: 'Singularidad' },
-  { id: 'firewall', label: 'Firewall' },
+  { id: 'dark_matter', label: 'Materia oscura' },
+  { id: 'dark_energy', label: 'Energía oscura' },
+  { id: 'lqg_bounce', label: 'Rebote LQG' },
+  { id: 'cosmic_inflation', label: 'Inflación' },
   { id: 'er_epr_bridge', label: 'ER=EPR' },
   { id: 'omega_multiverse', label: 'Multiverso Ω' },
-  { id: 'hawking_islands', label: 'Islas Hawking' },
-  { id: 'white_hole', label: 'Agujero blanco' },
   { id: 'fuzzball', label: 'Fuzzball' },
+];
+
+/** Teorías de ruptura física (ficción ★★ que violan leyes conocidas a propósito). */
+export const PHYSICS_BREAK_THEORIES = [
+  { id: 'time_loop', label: 'Cerradura temporal' },
+  { id: 'gravity_off', label: 'Gravedad off' },
+  { id: 'negative_mass', label: 'Masa negativa' },
+  { id: 'causality_shatter', label: 'Causa-efecto roto' },
+  { id: 'infinite_density_bounce', label: 'Rebote ρ=∞' },
+  { id: 'chronology_horizon', label: 'Horizonte temporal' },
+  { id: 'antigravity_core', label: 'Núcleo antigrav.' },
+  { id: 'paradox_engine', label: 'Máq. paradojas' },
 ];
 
 export function getMode(id) {
@@ -153,7 +187,7 @@ export class SimulationModeManager {
     this.currentMode = mode.id;
     const {
       camera, controls, exteriorGroup, horizonMembrane, interior,
-      multiverseWorld, higgsScene, binaryScene, gwWaves, bh, scene, setMinDistance,
+      multiverseWorld, higgsScene, stringScene, binaryScene, gwWaves, bh, scene, setMinDistance,
       horizonSim, onTheoryChange,
     } = this.ctx;
 
@@ -169,6 +203,7 @@ export class SimulationModeManager {
     interior.group.visible = s.interior;
     multiverseWorld.group.visible = s.multiverse;
     higgsScene.group.visible = s.higgs;
+    stringScene?.group && (stringScene.group.visible = !!s.string);
     binaryScene?.group && (binaryScene.group.visible = !!s.binary);
     gwWaves?.group && (gwWaves.group.visible = !!s.binary);
 
@@ -198,6 +233,8 @@ export class SimulationModeManager {
     this.ctx.cameraLife?.resetIdle?.();
     this.updateHudLabel(mode);
     this.ctx.guiSync?.();
+    this.ctx.adaptGuiToMode?.(mode.id);
+    this.ctx.modeExplainer?.showMode?.(mode.id, this.ctx.horizonSim?.theoryId);
   }
 
   zoomToHorizon() {
@@ -223,7 +260,7 @@ export class SimulationModeManager {
   applySceneVisibility(cameraImmersion) {
     const mode = getMode(this.currentMode);
     const s = mode.scene;
-    if (s.multiverse || s.higgs || s.binary) return;
+    if (s.multiverse || s.higgs || s.binary || s.string) return;
 
     this.ctx.exteriorGroup.visible = s.exterior && cameraImmersion < 0.95;
     if (!s.interior) {

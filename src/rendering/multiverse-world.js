@@ -150,10 +150,12 @@ export function createMultiverseWorld(cosmology = {}) {
   portalGroup.add(portalLight);
 
   let nucleateTimer = 0;
+  let currentOl = ol;
 
   function updateCosmology(cosmo) {
     const newOm = cosmo?.OmegaM ?? om;
     const newOl = cosmo?.OmegaLambda ?? ol;
+    currentOl = newOl;
     for (const b of bubbles) {
       const blend = 0.02;
       b.userData.omegaM += (newOm - b.userData.omegaM) * blend;
@@ -172,13 +174,17 @@ export function createMultiverseWorld(cosmology = {}) {
     portalCore.scale.setScalar(1 + Math.sin(t * 2) * 0.1);
     portalGlow.scale.setScalar(1 + Math.sin(t * 1.5) * 0.15);
 
+    const accelBoost = 1 + currentOl * 0.6;
+
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       const u = b.userData;
-      u.a = Math.min(2.5, u.a + u.aRate * dt);
+      const aRate = u.aRate * (1 + currentOl * 0.5);
+      u.a = Math.min(2.5, u.a + aRate * dt * accelBoost);
       const scale = u.baseR * (0.5 + u.a * 0.5);
       b.scale.setScalar(scale * (1 + Math.sin(t + u.phase) * 0.04));
-      b.position.addScaledVector(u.drift, dt);
+      const driftScale = 1 + currentOl * 0.3;
+      b.position.addScaledVector(u.drift, dt * driftScale);
 
       for (let j = i + 1; j < bubbles.length; j++) {
         const other = bubbles[j];

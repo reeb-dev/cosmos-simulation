@@ -120,6 +120,10 @@ export class BinaryBlackHoleSim {
     }
   }
 
+  get muSolar() {
+    return (this.m1Solar * this.m2Solar) / (this.m1Solar + this.m2Solar);
+  }
+
   get rs1() {
     return schwarzschildRadiusVis(this.m1Solar);
   }
@@ -171,11 +175,16 @@ export class BinaryBlackHoleSim {
     return this.phase;
   }
 
-  /** Strain h ~ (GM/c²r)(v²/c²) */
+  /** Strain h ~ (4GM/c²r)(v²/c²) — orden de magnitud inspiral (GW150914-like) */
   _strainFromOrbit(sepM, m1, m2) {
     const M = m1 + m2;
+    const mu = (m1 * m2) / M;
     const v = Math.sqrt((G * M) / sepM);
-    return Math.min(1, ((G * M) / (C * C * sepM)) * ((v * v) / (C * C)) * 1.2e22);
+    const rChar = sepM;
+    const h0 = (4 * G * mu) / (C * C * rChar);
+    const h = h0 * (v / C) ** 2;
+    const scale = 1e21;
+    return Math.min(1, h * scale);
   }
 
   step(dt) {
@@ -308,6 +317,7 @@ export class BinaryBlackHoleSim {
       separation: this.separationVis,
       m1: this.m1Solar,
       m2: this.m2Solar,
+      mu: this.muSolar,
       merged: this.mergedMassSolar,
       strain: this.lastStrain,
       frequency: this.lastFrequency,

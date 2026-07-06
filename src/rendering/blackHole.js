@@ -50,7 +50,9 @@ export function createBlackHole(rsVis, spin = 0) {
 
       void main() {
         float r = vRadius;
+        float tNorm = (r - innerRadius) / max(outerRadius - innerRadius, 0.001);
         float t = pow(innerRadius / max(r, innerRadius), 0.75);
+        float tempK = pow(max(tNorm, 0.02), -0.75);
         float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
         float spiral = sin(angle * 6.0 - time * 2.0 + r * 0.5 + spin * 4.0) * 0.5 + 0.5;
         float doppler = 1.0 + spin * 0.3 * sin(angle);
@@ -63,7 +65,7 @@ export function createBlackHole(rsVis, spin = 0) {
         vec3 color = mix(hot, warm, blend);
         color = mix(color, cool, blend * blend);
 
-        float alpha = smoothstep(outerRadius, innerRadius, r) * (0.6 + 0.4 * spiral) * t * doppler;
+        float alpha = smoothstep(outerRadius, innerRadius, r) * (0.6 + 0.4 * spiral) * t * doppler * (0.7 + 0.3 * tempK);
         color *= exteriorTint;
         gl_FragColor = vec4(color, alpha);
       }

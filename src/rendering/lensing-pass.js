@@ -9,6 +9,7 @@ const LensingShader = {
     blackHoleScreenPos: { value: new THREE.Vector2(0.5, 0.5) },
     lensStrength: { value: 0.04 },
     rsScreen: { value: 0.03 },
+    einsteinScreen: { value: 0.08 },
     enabled: { value: 1.0 },
     spin: { value: 0.0 },
   },
@@ -24,6 +25,7 @@ const LensingShader = {
     uniform vec2 blackHoleScreenPos;
     uniform float lensStrength;
     uniform float rsScreen;
+    uniform float einsteinScreen;
     uniform float enabled;
     uniform float spin;
     varying vec2 vUv;
@@ -57,9 +59,9 @@ const LensingShader = {
         return;
       }
 
-      float einsteinRing = smoothstep(rsScreen * 2.0, rsScreen * 2.3, dist)
-                         * smoothstep(rsScreen * 3.5, rsScreen * 2.8, dist);
-      col.rgb += vec3(1.0, 0.6, 0.15) * einsteinRing * 0.5;
+      float einsteinRing = smoothstep(einsteinScreen * 0.92, einsteinScreen, dist)
+                         * smoothstep(einsteinScreen * 1.35, einsteinScreen * 1.05, dist);
+      col.rgb += vec3(1.0, 0.6, 0.15) * einsteinRing * 0.55;
 
       float photonRing = smoothstep(rsScreen * 1.4, rsScreen * 1.5, dist)
                        * smoothstep(rsScreen * 1.7, rsScreen * 1.55, dist);
@@ -92,8 +94,14 @@ export function createLensingPass(renderer, scene, camera) {
     );
 
     const dist = Math.max(cam.position.distanceTo(bhWorldPos), rsVis * 1.2);
-    lensingPass.uniforms.rsScreen.value = Math.min(0.08, Math.max(0.006, (rsVis / dist) * 1.2));
-    lensingPass.uniforms.lensStrength.value = Math.min(0.06, rsVis / dist * 0.15);
+    const rsScreen = Math.min(0.08, Math.max(0.006, (rsVis / dist) * 1.2));
+    lensingPass.uniforms.rsScreen.value = rsScreen;
+  lensingPass.uniforms.lensStrength.value = Math.min(0.07, (rsVis / dist) * 0.18);
+
+    // Radio de Einstein θ_E ≈ 2rₛ/d → escala en pantalla proporcional a rₛ/d
+    const einsteinAngle = (2 * rsVis) / dist;
+    const einsteinScreen = Math.min(0.15, Math.max(rsScreen * 1.8, einsteinAngle * 0.85));
+    lensingPass.uniforms.einsteinScreen.value = einsteinScreen;
   }
 
   return {

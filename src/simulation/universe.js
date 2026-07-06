@@ -11,7 +11,7 @@ export const REGIME = {
 };
 
 export class Universe {
-  constructor() {
+  constructor(simulationSeed = null) {
     this.cosmology = new FriedmannSolver({ ...DEFAULT_COSMOLOGY });
     this.gravity = new NBodyGravity({ softening: 0.3 });
     this.geodesics = [];
@@ -23,8 +23,15 @@ export class Universe {
     this.showGeodesics = true;
     this.showLensing = true;
     this.lifeBoost = 1.8;
+    this.realismMode = 'standard';
+    this.simulationSeed = simulationSeed;
 
     this._initParticles();
+  }
+
+  /** RNG reproducible o Math.random como fallback */
+  _rng() {
+    return this.simulationSeed?.random?.() ?? Math.random();
   }
 
   get massKg() {
@@ -57,7 +64,7 @@ export class Universe {
     ];
 
     for (const o of orbits) {
-      const angle = Math.random() * Math.PI * 2;
+      const angle = this._rng() * Math.PI * 2;
       this.gravity.addBody({
         x: o.r * Math.cos(angle),
         y: 0,
@@ -65,7 +72,7 @@ export class Universe {
         vx: -o.v * Math.sin(angle),
         vy: 0,
         vz: o.v * Math.cos(angle),
-        mass: 0.5 + Math.random() * 0.5,
+        mass: 0.5 + this._rng() * 0.5,
       });
     }
   }
@@ -99,6 +106,7 @@ export class Universe {
       rsMeters: schwarzschildRadiusMeters(this.blackHoleMassSolar),
       t: this.cosmology.t,
       dc: this.cosmology.comovingDistance(),
+      ageGyr: this.cosmology.universeAgeGyr(),
     };
   }
 }

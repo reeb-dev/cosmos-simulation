@@ -210,15 +210,92 @@ export const EXPERIMENTS = {
       };
     },
   },
+  string_entropy_tension: {
+    name: 'Entropía de cuerdas vs Bekenstein',
+    description: 'Compara S_BH con el límite de Bekenstein y estima tensión de cuerda simbólica',
+    run: (ctx) => {
+      const HBAR = 1.055e-34;
+      const K_B = 1.381e-23;
+      const G = 6.674e-11;
+      const C = 2.998e8;
+      const L_PLANCK = Math.sqrt((HBAR * G) / C ** 3);
+      const rs = (2 * G * ctx.massKg) / (C * C);
+      const A = 4 * Math.PI * rs * rs;
+      const S = (K_B * C ** 3 * A) / (4 * G * HBAR);
+      const bekensteinBound = (2 * Math.PI * rs * ctx.massKg * C) / HBAR;
+      const alphaPrime = L_PLANCK ** 2;
+      const ls = L_PLANCK;
+      const Tstring = 1 / (2 * Math.PI * alphaPrime * ls ** 2);
+      const ratio = rs / L_PLANCK;
+      const nModes = Math.floor(Math.sqrt(ratio));
+      return {
+        S_cuerdas_kB: S / K_B,
+        limite_Bekenstein: bekensteinBound,
+        ratio_S_bound: S / (bekensteinBound * K_B),
+        T_cuerda_N: Tstring,
+        modos_vibracion: nModes,
+        g_s_simb: Math.min(1, 1 / Math.cbrt(ratio)),
+        masa_Msun: ctx.massSolar,
+        nota: 'T ~ 1/(2πα\'l_s²) con α\' ~ l_P² (simbólico)',
+      };
+    },
+  },
+  energy_violation: {
+    name: 'Violación de energía (E<0)',
+    description: 'Calcula energía simbólica negativa en teorías de ruptura física',
+    run: (ctx) => {
+      const C = 2.998e8;
+      const E_rest = ctx.massKg * C ** 2;
+      const paradox = Math.sin(ctx.probeR * 0.15) * 0.5 + 0.5;
+      const E_eff = E_rest * (1 - paradox * 1.2);
+      return {
+        E_reposo_J: E_rest,
+        E_efectiva_J: E_eff,
+        violacion: E_eff < 0 ? 'Sí ⚠' : 'Marginal',
+        indice_paradoja: paradox.toFixed(3),
+        nota: 'Simbólico — teorías ★★ Ruptura permiten E < 0',
+      };
+    },
+  },
+  bootstrap_paradox: {
+    name: 'Paradoja de bootstrap',
+    description: 'Índice de paradoja causal en bucles temporales (teorías de ruptura)',
+    run: (ctx) => {
+      const dilation = ctx.horizonDilation ?? 0;
+      const loop = 1 / Math.max(dilation, 1e-6);
+      const bootstrap = Math.min(1, loop * dilation * 0.5);
+      return {
+        indice_bootstrap: bootstrap.toFixed(3),
+        indice_bucle: loop.toFixed(3),
+        dilatacion: dilation.toFixed(4),
+        r_sonda: ctx.probeR.toFixed(2),
+        causalidad: bootstrap > 0.3 ? 'Cerrada ⚠' : 'Abierta',
+        nota: 'Información sin origen en CTC / máquina de paradojas',
+      };
+    },
+  },
 };
 
 export const COSMIC_ERAS = [
-  { zMin: 1100, name: 'Recombinación (CMB)', color: '#ffaa44' },
-  { zMin: 20, name: 'Era oscura', color: '#334466' },
-  { zMin: 6, name: 'Primera luz', color: '#88aaff' },
-  { zMin: 2, name: 'Formación galáctica', color: '#aa88ff' },
-  { zMin: 0.5, name: 'Era estelar', color: '#66ffaa' },
-  { zMin: 0, name: 'Presente', color: '#ffffff' },
+  { zMin: 1e9, name: 'Inflación cósmica', color: '#ff66ff', marker: 2 },
+  { zMin: 1e8, name: 'Nucleosíntesis primordial', color: '#ff9944', marker: 8 },
+  { zMin: 1100, name: 'Recombinación (CMB)', color: '#ffaa44', marker: 18 },
+  { zMin: 20, name: 'Era oscura', color: '#334466', marker: 32 },
+  { zMin: 6, name: 'Primera luz / reionización', color: '#88aaff', marker: 42 },
+  { zMin: 2, name: 'Formación galáctica', color: '#aa88ff', marker: 55 },
+  { zMin: 0.5, name: 'Era estelar', color: '#66ffaa', marker: 72 },
+  { zMin: 0, name: 'Era dominada por Λ', color: '#ffffff', marker: 95 },
+];
+
+export const COSMIC_TIMELINE_MARKERS = [
+  { id: 'inflation', label: 'Inflación', z: 1e9, pct: 2 },
+  { id: 'nucleosynthesis', label: 'Nucleosíntesis', z: 1e8, pct: 8 },
+  { id: 'recombination', label: 'CMB z≈1100', z: 1100, pct: 18 },
+  { id: 'dark_ages', label: 'Era oscura', z: 20, pct: 32 },
+  { id: 'reionization', label: 'Reionización', z: 6, pct: 42 },
+  { id: 'galaxy_formation', label: 'Galaxias', z: 2, pct: 55 },
+  { id: 'stellar', label: 'Era estelar', z: 0.5, pct: 72 },
+  { id: 'lambda', label: 'Dominio Λ', z: 0, pct: 95 },
 ];
 
 export function getCosmicEra(z) {

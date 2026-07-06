@@ -129,4 +129,25 @@ export class FriedmannSolver {
     this.a = 1;
     return this;
   }
+
+  /** Edad del universo desde el Big Bang hasta a dado (integración Simpson) */
+  universeAgeSeconds(atA = 1) {
+    const aMin = 1e-9;
+    const n = 300;
+    const da = (atA - aMin) / n;
+    let sum = 0;
+    for (let i = 0; i <= n; i++) {
+      const a = aMin + i * da;
+      const weight = i === 0 || i === n ? 1 : i % 2 === 0 ? 2 : 4;
+      const h = this.H(a);
+      sum += weight / Math.max(a * h, 1e-40);
+    }
+    return (da / 3) * sum;
+  }
+
+  /** Edad cósmica en gigaaños */
+  universeAgeGyr(atA = null) {
+    const a = atA ?? this.a;
+    return this.universeAgeSeconds(a) / 3.156e16;
+  }
 }

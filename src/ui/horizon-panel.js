@@ -1,8 +1,10 @@
 import GUI from 'lil-gui';
 import { HORIZON_THEORIES, PROBE_STATE, THEORY_IDS } from '../simulation/horizon-theories.js';
 import { getMode } from '../simulation/simulation-modes.js';
+import { getTheorySummaryHtml } from './mode-explainer.js';
 
 function theoryPrefix(theory) {
+  if (theory.physicsBreak) return '★★ ';
   if (theory.fiction) return '★★ ';
   if (theory.original || theory.speculative) return '★ ';
   return '';
@@ -51,7 +53,7 @@ export function createHorizonControls(simulator, callbacks = {}) {
   return gui;
 }
 
-export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null) {
+export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene, binarySim = null, stringScene = null) {
   const panel = document.getElementById('theory-panel');
   if (!panel) return;
 
@@ -65,11 +67,12 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
     body.innerHTML = `
       <h2>Choque de agujeros negros</h2>
       <span class="theory-status">${r.phase}</span>
-      <p class="theory-short">Dos agujeros negros en espiral perdiendo energía por ondas gravitacionales (Peters).</p>
-      <p class="theory-desc">Al fusionarse, ~5% de la masa se irradia. El remanente oscila (ringdown) y, si está activo, se evapora por Hawking (acelerado visualmente).</p>
+      <p class="theory-short">Dos agujeros negros en espiral perdiendo energía por ondas gravitacionales (Peters, 1964). Masa reducida μ = m₁m₂/(m₁+m₂).</p>
+      <p class="theory-desc">Al fusionarse, ~5% de la masa se irradia. El remanente oscila (ringdown) y, si está activo, se evapora por Hawking (acelerado visualmente). <em>Disclaimer:</em> inspiral validado con Peters; fusión/ringdown son fenomenológicos, no NR completa.</p>
       <div class="theory-readouts">
         <h3>Sistema binario</h3>
         <div><strong>M₁ / M₂:</strong> ${r.m1} / ${r.m2} M☉</div>
+        <div><strong>μ:</strong> ${r.mu?.toFixed(2) ?? '—'} M☉</div>
         <div><strong>Separación:</strong> ${r.separation.toFixed(1)} u.vis</div>
         <div><strong>Strain h:</strong> ${r.strain.toExponential(2)}</div>
         <div><strong>f<sub>GW</sub>:</strong> ${r.frequency.toFixed(1)} Hz (chirp)</div>
@@ -99,6 +102,25 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
       <p class="theory-desc">Visualización educativa abstracta: no replica datos exactos del LHC, sino el concepto del valor esperado del vacío ⟨φ⟩ y la generación de masa en fermiones.</p>
       <div class="theory-readouts"><h3>Lecturas simbólicas</h3>${rows}</div>
       <p class="theory-hint">💡 Observa cómo los fermiones se acercan al núcleo dorado y ganan masa.</p>
+    `;
+    return;
+  }
+
+  if (mode?.id === 'string_theory' && stringScene) {
+    const theory = HORIZON_THEORIES.string_theory;
+    const readoutData = stringScene.getReadouts();
+    const rows = readoutData.rows
+      .map((row) => `<div><strong>${row.label}:</strong> ${row.value}${row.unit ? ` ${row.unit}` : ''}</div>`)
+      .join('');
+    const body = panel.querySelector('.panel-body') || panel;
+    body.innerHTML = `
+      <h2>${theoryPrefix(theory)}${theory.name}</h2>
+      <span class="theory-status">${theory.status}</span>
+      <span class="theory-original">Especulativa ★</span>
+      <p class="theory-short">${theory.short}</p>
+      <p class="theory-desc">Escena cosmológica: cuerdas gigantes vibrando en el vacío, branas D colisionando (modelo pedagógico del Big Bang por colisión de branas) y cámara que recorre una cuerda.</p>
+      <div class="theory-readouts"><h3>Escena de cuerdas</h3>${rows}</div>
+      <p class="theory-hint">💡 También puedes elegir esta teoría en el horizonte del agujero negro para ver el interior Calabi-Yau con branas y modos vibracionales.</p>
     `;
     return;
   }
@@ -141,10 +163,13 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
   const originalBadge = theory.original
     ? '<span class="theory-original">Teoría derivada de esta simulación</span>'
     : '';
-  const speculativeBadge = theory.speculative
+  const speculativeBadge = theory.speculative && !theory.physicsBreak
     ? '<span class="theory-original">Especulativa ★</span>'
     : '';
-  const fictionBadge = theory.fiction
+  const physicsBreakBadge = theory.physicsBreak
+    ? '<span class="theory-physics-break">Ruptura física ★★ — viola leyes conocidas a propósito</span>'
+    : '';
+  const fictionBadge = theory.fiction && !theory.physicsBreak
     ? '<span class="theory-original">Ficción científica ★★</span>'
     : '';
 
@@ -176,6 +201,7 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
     <span class="theory-status">${theory.status}</span>
     ${originalBadge}
     ${speculativeBadge}
+    ${physicsBreakBadge}
     ${fictionBadge}
     <p class="theory-short">${theory.short}</p>
     <p class="theory-desc">${theory.description}</p>
@@ -190,17 +216,24 @@ export function updateTheoryPanel(simulator, simContext, modeManager, higgsScene
       <div><strong>Interior visible:</strong> ${(simulator.interiorOpacity * 100).toFixed(0)}%</div>
     </div>
     <p class="theory-hint">💡 Haz zoom hacia el agujero negro para activar la teoría sin usar la sonda.</p>
+    ${getTheorySummaryHtml(theory.id)}
   `;
 }
 
-export function updateHud(readouts, modeManager, binaryReadouts = null) {
+export function updateHud(readouts, modeManager, binaryReadouts = null, seed = null) {
   const el = document.getElementById('hud-readouts');
   if (!el) return;
 
+  const seedRow = seed != null
+    ? `<div class="hud-row hud-seed"><span>Semilla</span><span>${seed}</span></div>`
+    : '';
+
   if (binaryReadouts && modeManager?.currentMode === 'binary_merger') {
     el.innerHTML = `
+      ${seedRow}
       <div class="hud-row"><span>Fase</span><span>${binaryReadouts.phase}</span></div>
       <div class="hud-row"><span>M₁ / M₂</span><span>${binaryReadouts.m1} / ${binaryReadouts.m2} M☉</span></div>
+      <div class="hud-row"><span>μ</span><span>${binaryReadouts.mu?.toFixed(2) ?? '—'} M☉</span></div>
       <div class="hud-row"><span>Separación</span><span>${binaryReadouts.separation.toFixed(1)} u</span></div>
       <div class="hud-row"><span>h (strain)</span><span>${binaryReadouts.strain.toExponential(2)}</span></div>
       <div class="hud-row"><span>f<sub>GW</sub></span><span>${binaryReadouts.frequency.toFixed(1)} Hz</span></div>
@@ -212,6 +245,7 @@ export function updateHud(readouts, modeManager, binaryReadouts = null) {
   const dcMpc = readouts.dc / 3.086e22;
 
   el.innerHTML = `
+    ${seedRow}
     <div class="hud-row"><span>a(t)</span><span>${readouts.a.toFixed(6)}</span></div>
     <div class="hud-row"><span>z</span><span>${readouts.z.toFixed(6)}</span></div>
     <div class="hud-row"><span>H(t)</span><span>${readouts.H.toFixed(2)} km/s/Mpc</span></div>

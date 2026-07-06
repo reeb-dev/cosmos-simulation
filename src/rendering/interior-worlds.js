@@ -971,6 +971,126 @@ function createPlanckStarWorld(rs) {
   return g;
 }
 
+function createStringTheoryWorld(rs) {
+  const g = new THREE.Group();
+
+  const calabiYau = new THREE.Group();
+  const cyColors = [0xff66cc, 0x66ccff, 0xccff66, 0xffcc66, 0xaa66ff];
+  for (let i = 0; i < 6; i++) {
+    const knot = new THREE.Mesh(
+      new THREE.TorusKnotGeometry(rs * (0.12 + i * 0.03), rs * 0.025, 64, 8, 2 + (i % 3), 3 + (i % 2)),
+      new THREE.MeshBasicMaterial({
+        color: cyColors[i % cyColors.length],
+        wireframe: true,
+        transparent: true,
+        opacity: 0.45,
+      })
+    );
+    knot.position.set(
+      (Math.random() - 0.5) * rs * 0.6,
+      (Math.random() - 0.5) * rs * 0.6,
+      (Math.random() - 0.5) * rs * 0.6
+    );
+    knot.userData.spin = new THREE.Vector3(0.01 + i * 0.005, 0.015, 0.008);
+    calabiYau.add(knot);
+  }
+  g.add(calabiYau);
+
+  const extraDims = new THREE.Group();
+  for (const rot of [
+    { x: 0, y: 0, z: 0 },
+    { x: Math.PI / 2, y: 0, z: 0 },
+    { x: 0, y: Math.PI / 2, z: 0 },
+  ]) {
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(rs * 2.5, rs * 2.5, 4, 4),
+      new THREE.MeshBasicMaterial({ color: 0x8866cc, transparent: true, opacity: 0.06, side: THREE.DoubleSide })
+    );
+    plane.rotation.set(rot.x, rot.y, rot.z);
+    extraDims.add(plane);
+  }
+  g.add(extraDims);
+
+  const branes = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const brane = new THREE.Mesh(
+      new THREE.PlaneGeometry(rs * 1.8, rs * 1.8),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color().setHSL(0.75 + i * 0.05, 0.6, 0.5),
+        transparent: true,
+        opacity: 0.12,
+        side: THREE.DoubleSide,
+      })
+    );
+    brane.rotation.set(Math.PI / 2 + i * 0.4, i * 0.8, 0);
+    brane.position.set(0, (i - 1.5) * rs * 0.35, 0);
+    branes.add(brane);
+  }
+  g.add(branes);
+
+  const strings = new THREE.Group();
+  const stringColors = [0xcc88ff, 0x88ffcc, 0xff88cc, 0xaaddff];
+  for (let i = 0; i < 16; i++) {
+    const closed = i % 3 === 0;
+    const freq = 1 + (i % 5) * 0.7;
+    const amp = rs * (0.08 + (i % 4) * 0.04);
+    const len = rs * (0.6 + (i % 3) * 0.3);
+    const segments = 32;
+    const points = [];
+    for (let j = 0; j <= segments; j++) {
+      const t = j / segments;
+      const x = (t - 0.5) * len;
+      const y = Math.sin(t * Math.PI * freq) * amp * 0.3;
+      const z = closed ? Math.sin(t * Math.PI * 2) * amp * 0.5 : 0;
+      points.push(new THREE.Vector3(x, y, z));
+    }
+    if (closed) points.push(points[0].clone());
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({ color: stringColors[i % stringColors.length], transparent: true, opacity: 0.75 })
+    );
+    const a = (i / 16) * Math.PI * 2;
+    const r = rs * (0.25 + (i % 4) * 0.15);
+    line.position.set(Math.cos(a) * r, (Math.random() - 0.5) * rs * 0.5, Math.sin(a) * r);
+    line.rotation.y = a;
+    line.userData = { freq, amp, len, closed, phase: Math.random() * Math.PI * 2 };
+    strings.add(line);
+  }
+  g.add(strings);
+
+  const graviton = makeGlowSphere(0xffffff, rs * 0.06, 0.85);
+  g.add(graviton);
+
+  g.userData.strings = strings;
+  g.userData.calabiYau = calabiYau;
+  g.userData.animate = (t) => {
+    calabiYau.children.forEach((k) => {
+      k.rotation.x += k.userData.spin.x;
+      k.rotation.y += k.userData.spin.y;
+      k.rotation.z += k.userData.spin.z;
+    });
+    branes.children.forEach((b, i) => {
+      b.position.y = (i - 1.5) * rs * 0.35 + Math.sin(t * (0.8 + i * 0.2)) * rs * 0.05;
+      b.material.opacity = 0.08 + Math.sin(t + i) * 0.04;
+    });
+    extraDims.rotation.y += 0.003;
+    strings.children.forEach((line) => {
+      const u = line.userData;
+      const pos = line.geometry.attributes.position;
+      for (let j = 0; j < pos.count; j++) {
+        const s = j / (pos.count - 1);
+        const x = (s - 0.5) * u.len;
+        const y = Math.sin(s * Math.PI * u.freq + t * (2 + u.freq) + u.phase) * u.amp;
+        const z = u.closed ? Math.sin(s * Math.PI * 2 + t * u.freq) * u.amp * 0.5 : 0;
+        pos.setXYZ(j, x, y, z);
+      }
+      pos.needsUpdate = true;
+    });
+    graviton.scale.setScalar(1 + Math.sin(t * 6) * 0.15);
+  };
+  return g;
+}
+
 function createFuzzballWorld(rs) {
   const g = new THREE.Group();
   const fuzz = new THREE.Group();
@@ -1222,6 +1342,493 @@ function createFriedmannGateWorld(rs) {
   return g;
 }
 
+function createCosmicInflationWorld(rs) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 40; i++) {
+    const bubble = makeGlowSphere(0xff66ff, rs * (0.1 + Math.random() * 0.4), 0.25 + Math.random() * 0.3);
+    const a = Math.random() * Math.PI * 2;
+    const r = rs * (0.5 + Math.random() * 2);
+    bubble.position.set(Math.cos(a) * r, (Math.random() - 0.5) * rs, Math.sin(a) * r);
+    bubble.userData.grow = 1 + Math.random() * 2;
+    g.add(bubble);
+  }
+  const field = makeGlowSphere(0xff44ff, rs * 1.5, 0.15);
+  g.add(field);
+  g.userData.animate = (t) => {
+    const scale = Math.exp(t * 0.15);
+    field.scale.setScalar(scale);
+    g.children.forEach((c, i) => {
+      if (c.userData.grow) c.scale.setScalar(1 + Math.sin(t * c.userData.grow) * 0.2 + t * 0.02);
+    });
+  };
+  return g;
+}
+
+function createDarkMatterWorld(rs) {
+  const g = new THREE.Group();
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(rs * 2.2, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x334488, transparent: true, opacity: 0.12, wireframe: true })
+  );
+  g.add(halo);
+  const lensRings = [];
+  for (let i = 0; i < 5; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(rs * (0.8 + i * 0.35), rs * 0.02, 8, 64),
+      new THREE.MeshBasicMaterial({ color: 0x6688cc, transparent: true, opacity: 0.2 - i * 0.03 })
+    );
+    ring.rotation.x = Math.PI / 2 + i * 0.15;
+    lensRings.push(ring);
+    g.add(ring);
+  }
+  const pts = new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({ color: 0x4466aa, size: 0.3, transparent: true, opacity: 0.4 })
+  );
+  const arr = [];
+  for (let i = 0; i < 150; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = rs * (0.3 + Math.random() * 2);
+    arr.push(Math.cos(a) * r, (Math.random() - 0.5) * rs * 0.5, Math.sin(a) * r);
+  }
+  pts.geometry.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+  g.add(pts);
+  g.userData.animate = (t) => {
+    halo.rotation.y += 0.01;
+    lensRings.forEach((r, i) => { r.rotation.z += 0.015 * (i + 1); });
+    pts.rotation.y -= 0.008;
+  };
+  return g;
+}
+
+function createDarkEnergyWorld(rs) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 8; i++) {
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(rs * (0.4 + i * 0.25), 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0xaa55ff, transparent: true, opacity: 0.12, side: THREE.BackSide })
+    );
+    shell.userData.expand = 1 + i * 0.08;
+    g.add(shell);
+  }
+  const lambda = makeGlowSphere(0xcc66ff, rs * 0.2, 0.7);
+  g.add(lambda);
+  g.userData.animate = (t) => {
+    const accel = 1 + t * 0.04;
+    g.children.forEach((c) => {
+      if (c.userData.expand) c.scale.setScalar(c.userData.expand * accel);
+    });
+    lambda.scale.setScalar(1 + Math.sin(t * 2) * 0.1);
+  };
+  return g;
+}
+
+function createCosmicStringsWorld(rs) {
+  const g = new THREE.Group();
+  for (let s = 0; s < 6; s++) {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-rs * 2, (s - 2.5) * rs * 0.3, -rs),
+      new THREE.Vector3(-rs * 0.5, (s - 2.5) * rs * 0.5, 0),
+      new THREE.Vector3(rs * 0.5, (s - 2.5) * rs * 0.3, rs * 0.5),
+      new THREE.Vector3(rs * 2, (s - 2.5) * rs * 0.4, rs),
+    ]);
+    const tube = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, 40, rs * 0.03, 6, false),
+      new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.65 })
+    );
+    tube.userData.phase = s;
+    g.add(tube);
+  }
+  g.userData.animate = (t) => {
+    g.children.forEach((c) => {
+      c.material.opacity = 0.45 + Math.sin(t * 3 + c.userData.phase) * 0.2;
+    });
+    g.rotation.y += 0.008;
+  };
+  return g;
+}
+
+function createLqgBounceWorld(rs) {
+  const g = new THREE.Group();
+  const bounce = makeGlowSphere(0x66ffcc, rs * 0.35, 0.85);
+  g.add(bounce);
+  const lattice = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(rs * 0.8, 2),
+    new THREE.MeshBasicMaterial({ color: 0x44ddaa, wireframe: true, transparent: true, opacity: 0.35 })
+  );
+  g.add(lattice);
+  for (let i = 0; i < 4; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(rs * (0.5 + i * 0.2), rs * 0.015, 6, 48),
+      new THREE.MeshBasicMaterial({ color: 0x88ffdd, transparent: true, opacity: 0.4 })
+    );
+    ring.rotation.x = (Math.PI / 4) * i;
+    g.add(ring);
+  }
+  g.userData.animate = (t) => {
+    const pulse = 1 + Math.abs(Math.sin(t * 2.5)) * 0.35;
+    bounce.scale.setScalar(pulse);
+    lattice.rotation.x += 0.02;
+    lattice.rotation.y += 0.015;
+    lattice.scale.setScalar(2 - pulse * 0.5);
+  };
+  return g;
+}
+
+function createTimeLoopWorld(rs) {
+  const g = new THREE.Group();
+  const mobius = new THREE.Mesh(
+    new THREE.TorusGeometry(rs * 0.65, rs * 0.12, 16, 100),
+    new THREE.MeshBasicMaterial({ color: 0xff44aa, wireframe: true, transparent: true, opacity: 0.7 })
+  );
+  mobius.rotation.x = Math.PI / 2;
+  mobius.rotation.z = Math.PI / 4;
+  g.add(mobius);
+
+  for (let i = 0; i < 6; i++) {
+    const clock = new THREE.Group();
+    const face = new THREE.Mesh(
+      new THREE.CircleGeometry(rs * 0.12, 24),
+      new THREE.MeshBasicMaterial({ color: 0xff88cc, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+    );
+    const hand = new THREE.Mesh(
+      new THREE.BoxGeometry(rs * 0.01, rs * 0.1, rs * 0.01),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    hand.position.y = rs * 0.04;
+    clock.add(face, hand);
+    const a = (i / 6) * Math.PI * 2;
+    clock.position.set(Math.cos(a) * rs * 0.9, Math.sin(a * 2) * rs * 0.2, Math.sin(a) * rs * 0.9);
+    clock.userData.spin = -1 - i * 0.2;
+    g.add(clock);
+  }
+
+  const loopTrail = new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({ color: 0xff66cc, size: 0.4, transparent: true, opacity: 0.7 })
+  );
+  const pts = [];
+  for (let i = 0; i < 120; i++) {
+    const u = (i / 120) * Math.PI * 2;
+    pts.push(Math.cos(u) * rs * 0.7, Math.sin(u * 2) * rs * 0.15, Math.sin(u) * rs * 0.7);
+  }
+  loopTrail.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  g.add(loopTrail);
+
+  g.userData.animate = (t) => {
+    mobius.rotation.y -= 0.025;
+    g.children.forEach((c) => {
+      if (c.userData.spin) c.rotation.z += c.userData.spin * 0.03;
+    });
+    loopTrail.rotation.y -= 0.02;
+  };
+  return g;
+}
+
+function createGravityOffWorld(rs) {
+  const g = new THREE.Group();
+  const disk = new THREE.Mesh(
+    new THREE.RingGeometry(rs * 0.3, rs * 1.1, 48),
+    new THREE.MeshBasicMaterial({ color: 0xff8844, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
+  );
+  disk.rotation.x = Math.PI;
+  g.add(disk);
+
+  const debris = new THREE.Group();
+  for (let i = 0; i < 40; i++) {
+    const chunk = new THREE.Mesh(
+      new THREE.BoxGeometry(rs * 0.05, rs * 0.03, rs * 0.04),
+      new THREE.MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.75 })
+    );
+    chunk.position.set((Math.random() - 0.5) * rs * 2, (Math.random() - 0.5) * rs * 1.5, (Math.random() - 0.5) * rs * 2);
+    chunk.userData.drift = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.02,
+      Math.random() * 0.03 + 0.01,
+      (Math.random() - 0.5) * 0.02
+    );
+    debris.add(chunk);
+  }
+  g.add(debris);
+
+  const zeroG = makeGlowSphere(0x88ddff, rs * 0.15, 0.5);
+  g.add(zeroG);
+
+  g.userData.animate = (t) => {
+    disk.rotation.z += 0.005;
+    debris.children.forEach((c) => {
+      c.position.add(c.userData.drift);
+      c.rotation.x += 0.02;
+      c.rotation.y += 0.015;
+    });
+    zeroG.scale.setScalar(1 + Math.sin(t * 2) * 0.15);
+  };
+  return g;
+}
+
+function createNegativeMassWorld(rs) {
+  const g = new THREE.Group();
+  const horizon = new THREE.Mesh(
+    new THREE.SphereGeometry(rs * 0.95, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xff6688, transparent: true, opacity: 0.2, wireframe: true })
+  );
+  g.add(horizon);
+
+  const fleeing = new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({ color: 0xff88aa, size: 0.55, transparent: true, opacity: 0.9 })
+  );
+  const pts = [];
+  const vel = [];
+  for (let i = 0; i < 200; i++) {
+    const r = Math.random() * rs * 0.4;
+    const a = Math.random() * Math.PI * 2;
+    const b = Math.acos(2 * Math.random() - 1);
+    pts.push(r * Math.sin(b) * Math.cos(a), r * Math.sin(b) * Math.sin(a), r * Math.cos(b));
+    vel.push((Math.random() + 0.5) * 0.08);
+  }
+  fleeing.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  fleeing.userData.vel = vel;
+  g.add(fleeing);
+
+  const core = makeGlowSphere(0xff4466, rs * 0.1, 0.9);
+  g.add(core);
+
+  g.userData.animate = (t) => {
+    const pos = fleeing.geometry.attributes.position.array;
+    const vels = fleeing.userData.vel;
+    for (let i = 0; i < pos.length; i += 3) {
+      const dx = pos[i];
+      const dy = pos[i + 1];
+      const dz = pos[i + 2];
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
+      const v = vels[i / 3];
+      pos[i] += (dx / d) * v;
+      pos[i + 1] += (dy / d) * v;
+      pos[i + 2] += (dz / d) * v;
+    }
+    fleeing.geometry.attributes.position.needsUpdate = true;
+    horizon.scale.setScalar(1 + Math.sin(t * 1.5) * 0.12);
+    core.scale.setScalar(1 - Math.sin(t * 2) * 0.2);
+  };
+  return g;
+}
+
+function createCausalityShatterWorld(rs) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 14; i++) {
+    const shard = new THREE.Mesh(
+      new THREE.PlaneGeometry(rs * 0.4, rs * 0.15),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color().setHSL(0.08 + i * 0.02, 0.9, 0.55),
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+      })
+    );
+    shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    shard.position.set((Math.random() - 0.5) * rs * 1.5, (Math.random() - 0.5) * rs, (Math.random() - 0.5) * rs);
+    shard.userData.phase = i;
+    g.add(shard);
+  }
+
+  const rewind = new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({ color: 0xffcc44, size: 0.35, transparent: true, opacity: 0.8 })
+  );
+  const pts = [];
+  for (let i = 0; i < 100; i++) pts.push((Math.random() - 0.5) * rs * 2, (Math.random() - 0.5) * rs * 1.5, (Math.random() - 0.5) * rs);
+  rewind.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  g.add(rewind);
+
+  g.userData.animate = (t) => {
+    g.children.forEach((c) => {
+      if (c.userData.phase !== undefined) {
+        c.rotation.z -= 0.015;
+        c.position.y += Math.sin(t * 2 + c.userData.phase) * 0.01;
+      }
+    });
+    const pos = rewind.geometry.attributes.position.array;
+    for (let i = 0; i < pos.length; i += 3) pos[i] -= 0.03;
+    rewind.geometry.attributes.position.needsUpdate = true;
+  };
+  return g;
+}
+
+function createInfiniteDensityBounceWorld(rs) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(rs * 0.2, 32, 32),
+    new THREE.ShaderMaterial({
+      uniforms: { time: { value: 0 } },
+      transparent: true,
+      vertexShader: `
+        varying vec3 vPos;
+        void main() {
+          vPos = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec3 vPos;
+        void main() {
+          float pulse = abs(sin(time * 3.0));
+          vec3 col = mix(vec3(1.0, 0.2, 0.0), vec3(1.0, 0.8, 0.2), pulse);
+          gl_FragColor = vec4(col, 0.85 + pulse * 0.15);
+        }
+      `,
+    })
+  );
+  g.add(core);
+
+  for (let i = 0; i < 5; i++) {
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(rs * (0.35 + i * 0.15), 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0xff5522, transparent: true, opacity: 0.15, wireframe: true })
+    );
+    shell.userData.offset = i;
+    g.add(shell);
+  }
+
+  g.userData.animate = (t) => {
+    const pulse = 1 + Math.abs(Math.sin(t * 3)) * 0.6;
+    core.scale.setScalar(pulse);
+    core.material.uniforms.time.value = t;
+    g.children.forEach((c) => {
+      if (c.userData.offset !== undefined) {
+        c.scale.setScalar(2 - pulse * 0.5 + c.userData.offset * 0.1);
+      }
+    });
+  };
+  return g;
+}
+
+function createChronologyHorizonWorld(rs) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const melt = new THREE.Mesh(
+      new THREE.TorusGeometry(rs * (0.25 + i * 0.12), rs * 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffdd55, transparent: true, opacity: 0.65 })
+    );
+    melt.rotation.x = Math.PI / 2 + Math.sin(i) * 0.5;
+    melt.rotation.z = i * 0.4;
+    melt.userData.wobble = i;
+    g.add(melt);
+  }
+
+  const arrows = new THREE.Group();
+  for (let i = 0; i < 8; i++) {
+    const arrow = new THREE.Mesh(
+      new THREE.ConeGeometry(rs * 0.05, rs * 0.2, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0.7 })
+    );
+    const a = (i / 8) * Math.PI * 2;
+    arrow.position.set(Math.cos(a) * rs * 0.6, Math.sin(a * 3) * rs * 0.3, Math.sin(a) * rs * 0.6);
+    arrow.lookAt(0, Math.sin(a * 2) * rs, 0);
+    arrows.add(arrow);
+  }
+  g.add(arrows);
+
+  const drip = makeGlowSphere(0xffcc33, rs * 0.18, 0.6);
+  g.add(drip);
+
+  g.userData.animate = (t) => {
+    g.children.forEach((c) => {
+      if (c.userData.wobble !== undefined) {
+        c.rotation.y += 0.02;
+        c.position.y = Math.sin(t * 2 + c.userData.wobble) * rs * 0.1;
+      }
+    });
+    arrows.rotation.y += 0.03;
+    drip.scale.y = 1 + Math.sin(t * 4) * 0.4;
+  };
+  return g;
+}
+
+function createAntigravityCoreWorld(rs) {
+  const g = new THREE.Group();
+  const voidBubble = new THREE.Mesh(
+    new THREE.SphereGeometry(rs * 0.35, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x001122, transparent: true, opacity: 0.92 })
+  );
+  g.add(voidBubble);
+
+  const repulseRing = new THREE.Mesh(
+    new THREE.TorusGeometry(rs * 0.5, rs * 0.03, 8, 64),
+    new THREE.MeshBasicMaterial({ color: 0x66ffdd, transparent: true, opacity: 0.8 })
+  );
+  g.add(repulseRing);
+
+  const pushed = new THREE.Group();
+  for (let i = 0; i < 30; i++) {
+    const p = makeGlowSphere(0x44ccaa, rs * 0.04, 0.6);
+    const a = (i / 30) * Math.PI * 2;
+    const r = rs * (0.4 + (i % 5) * 0.08);
+    p.position.set(Math.cos(a) * r, (Math.random() - 0.5) * rs * 0.3, Math.sin(a) * r);
+    p.userData.angle = a;
+    pushed.add(p);
+  }
+  g.add(pushed);
+
+  g.userData.animate = (t) => {
+    voidBubble.scale.setScalar(1 + Math.sin(t * 2.5) * 0.1);
+    repulseRing.scale.setScalar(1 + t * 0.02);
+    pushed.children.forEach((p) => {
+      const a = p.userData.angle + t * 0.05;
+      const r = rs * (0.45 + Math.sin(t + p.userData.angle) * 0.1);
+      p.position.set(Math.cos(a) * r, p.position.y, Math.sin(a) * r);
+    });
+  };
+  return g;
+}
+
+function createParadoxEngineWorld(rs) {
+  const g = new THREE.Group();
+  const engine = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const gear = new THREE.Mesh(
+      new THREE.TorusGeometry(rs * (0.35 + i * 0.15), rs * 0.05, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xcc44ff, transparent: true, opacity: 0.75 })
+    );
+    gear.rotation.x = Math.PI / 2;
+    gear.userData.spin = (i % 2 === 0 ? 1 : -1) * (0.8 + i * 0.2);
+    engine.add(gear);
+  }
+  g.add(engine);
+
+  const bits = new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({ color: 0xee88ff, size: 0.3, transparent: true, opacity: 0.85 })
+  );
+  const pts = [];
+  for (let i = 0; i < 150; i++) pts.push((Math.random() - 0.5) * rs * 1.2, (Math.random() - 0.5) * rs, (Math.random() - 0.5) * rs);
+  bits.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  g.add(bits);
+
+  const label = makeGlowSphere(0xaa33ff, rs * 0.12, 0.7);
+  label.position.y = rs * 0.5;
+  g.add(label);
+
+  const stairs = new THREE.Group();
+  for (let s = 0; s < 6; s++) {
+    const step = new THREE.Mesh(
+      new THREE.BoxGeometry(rs * 0.25, rs * 0.04, rs * 0.15),
+      new THREE.MeshBasicMaterial({ color: 0x9944cc, transparent: true, opacity: 0.5 })
+    );
+    step.position.set((s % 3) * rs * 0.2 - rs * 0.2, s * rs * 0.12 - rs * 0.3, (s % 2) * rs * 0.15);
+    stairs.add(step);
+  }
+  g.add(stairs);
+
+  g.userData.animate = (t) => {
+    engine.children.forEach((c) => { c.rotation.z += c.userData.spin * 0.02; });
+    bits.rotation.y -= 0.015;
+    label.material.opacity = 0.5 + Math.sin(t * 5) * 0.3;
+    stairs.rotation.y += 0.008;
+  };
+  return g;
+}
+
 const BUILDERS = {
   singularity: createSingularityWorld,
   white_hole: createWhiteHoleWorld,
@@ -1242,12 +1849,26 @@ const BUILDERS = {
   hawking_islands: createHawkingIslandsWorld,
   er_epr_bridge: createErEprBridgeWorld,
   planck_star: createPlanckStarWorld,
+  string_theory: createStringTheoryWorld,
   fuzzball: createFuzzballWorld,
   cpt_mirror: createCptMirrorWorld,
   ads_cft_dynamic: createAdsCftDynamicWorld,
   babel_library: createBabelLibraryWorld,
   friedmann_gate: createFriedmannGateWorld,
   omega_multiverse: createOmegaMultiverseWorld,
+  cosmic_inflation: createCosmicInflationWorld,
+  dark_matter: createDarkMatterWorld,
+  dark_energy: createDarkEnergyWorld,
+  cosmic_strings: createCosmicStringsWorld,
+  lqg_bounce: createLqgBounceWorld,
+  time_loop: createTimeLoopWorld,
+  gravity_off: createGravityOffWorld,
+  negative_mass: createNegativeMassWorld,
+  causality_shatter: createCausalityShatterWorld,
+  infinite_density_bounce: createInfiniteDensityBounceWorld,
+  chronology_horizon: createChronologyHorizonWorld,
+  antigravity_core: createAntigravityCoreWorld,
+  paradox_engine: createParadoxEngineWorld,
 };
 
 export function createInteriorWorlds(rs) {
@@ -1326,6 +1947,7 @@ export function applyMembraneVisual(mat, visual, theoryIndex = 0) {
   mat.uniforms.membraneColor.value.set(c.r, c.g, c.b);
   mat.uniforms.membraneRippleScale.value = visual.membraneRipple ?? 1;
   mat.uniforms.theoryIndex.value = theoryIndex;
+  mat.uniforms.membraneGlitch.value = visual.membraneGlitch ? 1 : 0;
 }
 
 export function createHorizonMembrane(rs) {
@@ -1338,6 +1960,7 @@ export function createHorizonMembrane(rs) {
       membraneColor: { value: new THREE.Vector3(1, 0.4, 0) },
       membraneRippleScale: { value: 1 },
       theoryIndex: { value: 0 },
+      membraneGlitch: { value: 0 },
     },
     transparent: true,
     side: THREE.FrontSide,
@@ -1348,6 +1971,7 @@ export function createHorizonMembrane(rs) {
       uniform float rs;
       uniform float membraneRippleScale;
       uniform float theoryIndex;
+      uniform float membraneGlitch;
       varying vec3 vNormal;
       varying float vDist;
       void main() {
@@ -1355,6 +1979,10 @@ export function createHorizonMembrane(rs) {
         float freq = 30.0 + theoryIndex * 1.5;
         float wave = sin(position.y * freq + time * 4.0) * ripple * rs * 0.15 * membraneRippleScale;
         wave += sin(position.x * freq * 0.7 + time * 3.0) * ripple * rs * 0.05 * membraneRippleScale;
+        if (membraneGlitch > 0.5) {
+          float glitch = step(0.92, fract(position.y * 17.0 + time * 9.0));
+          wave += glitch * rs * 0.25 * sin(time * 20.0);
+        }
         vec3 pos = position + normal * wave;
         vDist = length(position) / rs;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -1362,6 +1990,8 @@ export function createHorizonMembrane(rs) {
     `,
     fragmentShader: `
       uniform vec3 membraneColor;
+      uniform float time;
+      uniform float membraneGlitch;
       varying vec3 vNormal;
       varying float vDist;
       void main() {
@@ -1370,6 +2000,13 @@ export function createHorizonMembrane(rs) {
         vec3 rim = mix(hot, vec3(1.0), 0.35);
         vec3 col = mix(hot * 0.6, rim, fresnel);
         float alpha = fresnel * 0.65 + 0.12;
+        if (membraneGlitch > 0.5) {
+          float tear = step(0.88, fract(sin(vDist * 80.0 + time * 12.0) * 43758.5453));
+          float scan = step(0.95, fract(vDist * 40.0 - time * 6.0));
+          col = mix(col, vec3(1.0, 0.2, 0.8), tear * 0.5);
+          col = mix(col, vec3(0.2, 1.0, 0.9), scan * 0.35);
+          alpha += tear * 0.2;
+        }
         gl_FragColor = vec4(col, alpha);
       }
     `,

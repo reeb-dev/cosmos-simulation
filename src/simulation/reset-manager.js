@@ -12,6 +12,7 @@ export const DEFAULT_STATE = {
   showGeodesics: true,
   showLensing: true,
   lifeEnabled: true,
+  realismMode: 'standard',
   theoryId: DEFAULT_THEORY,
   cosmoPreset: 'lcdm',
 };
@@ -27,6 +28,7 @@ export class ResetManager {
     universe.cosmology.reset();
     universe._initParticles();
     engine.clock = 0;
+    this.ctx.dataLogger?.reset?.();
     horizonSim.reset();
     probe?.reset();
     this.ctx.onVisualUpdate?.();
@@ -69,6 +71,7 @@ export class ResetManager {
     universe.showExpansion = d.showExpansion;
     universe.showGeodesics = d.showGeodesics;
     universe.showLensing = d.showLensing;
+    universe.realismMode = d.realismMode ?? 'standard';
     universe.setCosmology({ ...d.cosmology });
     universe.cosmology.reset();
     universe._initParticles();
@@ -87,8 +90,11 @@ export class ResetManager {
     }
 
     engine.clock = 0;
+    this.ctx.dataLogger?.reset?.();
     probe?.reset();
     starfield?.reset?.();
+    this.ctx.galaxyField?.reset?.();
+    this.ctx.cmbBackground?.update?.(0);
     cameraLife?.resetIdle?.();
     cameraLife?.resetCamera?.(camera, controls);
     this.ctx.modeManager?.setMode?.('black_hole');
