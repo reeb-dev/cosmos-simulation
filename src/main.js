@@ -39,6 +39,7 @@ import { DataLogger } from './research/data-logger.js';
 import { createCosmosApi } from './research/cosmos-api.js';
 import { updateResearchPanel } from './ui/research-panel.js';
 import { createResearchGui } from './ui/research-panel.js';
+import { createClassroomMode } from './ui/classroom-mode.js';
 
 const simulationSeed = new SimulationSeed();
 const urlStateEarly = parseUrlState();
@@ -63,6 +64,7 @@ scene.add(horizonMembrane);
 const interior = createInteriorWorlds(engine.universe.rsVis);
 const horizonTransition = createHorizonTransition(camera);
 const probe = createProbe();
+let modeExplainer = null;
 
 function applyTheoryVisual(id) {
   const visual = getHorizonVisual(id);
@@ -173,9 +175,15 @@ const resetManager = new ResetManager(appCtx);
 appCtx.resetManager = resetManager;
 
 const guiHandles = createMasterGui(appCtx);
-createResearchGui(appCtx, guiHandles.gui);
+const researchFolder = createResearchGui(appCtx, guiHandles.gui);
+guiHandles.folders.research = researchFolder;
+const classroomMode = createClassroomMode(appCtx);
+appCtx.classroomMode = classroomMode;
+classroomMode.addGuiControls(guiHandles.gui, guiHandles.controllers, guiHandles.folders);
+classroomMode.applyLocksFromUrl();
+classroomMode.applyGuiRestrictions(guiHandles.controllers, guiHandles.folders);
 const guidePanel = createGuidePanel();
-const modeExplainer = createModeExplainer();
+modeExplainer = createModeExplainer();
 appCtx.modeExplainer = modeExplainer;
 const cosmicTour = createCosmicTour(appCtx);
 appCtx.cosmicTour = cosmicTour;
@@ -304,7 +312,8 @@ function animate(now) {
   } else {
     bh.group.visible = true;
     binaryCamLerp = 0;
-    modeManager.applySceneVisibility(cameraImmersion);
+    // Ocultar exterior solo por inmersión de cámara, no cuando solo la sonda cruza
+    modeManager.applySceneVisibility(cameraImmersion, horizonSim.interiorOpacity, cameraImmersion);
     const extDim = 1 - Math.min(1, cameraImmersion * 1.1);
     starfield.points.material.opacity = 0.3 + extDim * 0.6;
     galaxyField.group.visible = cameraImmersion < 0.92;

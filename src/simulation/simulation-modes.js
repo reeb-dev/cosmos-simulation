@@ -257,14 +257,17 @@ export class SimulationModeManager {
     if (modeBadge) modeBadge.textContent = mode.name;
   }
 
-  applySceneVisibility(cameraImmersion) {
+  applySceneVisibility(cameraImmersion, interiorOpacity = 0, cameraOnlyImmersion = cameraImmersion) {
     const mode = getMode(this.currentMode);
     const s = mode.scene;
     if (s.multiverse || s.higgs || s.binary || s.string) return;
 
-    this.ctx.exteriorGroup.visible = s.exterior && cameraImmersion < 0.95;
+    // Exterior: solo ocultar si la cámara cruza el horizonte, no si solo la sonda está dentro
+    this.ctx.exteriorGroup.visible = s.exterior && cameraOnlyImmersion < 0.95;
     if (!s.interior) {
       this.ctx.interior.group.visible = false;
+    } else if (interiorOpacity > 0.01 && cameraOnlyImmersion < 0.05) {
+      this.ctx.interior.group.visible = true;
     }
   }
 }

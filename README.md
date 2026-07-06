@@ -68,13 +68,19 @@ npx vercel --prod --yes
 
 2. `vercel.json` ya define el framework (Vite) y los rewrites para SPA.
 
-### GitHub Pages
+### GitHub Pages (CI automático)
+
+Cada push a `main` despliega vía [GitHub Actions](.github/workflows/deploy-pages.yml). Activa **Pages** en el repo: Settings → Pages → Source: **GitHub Actions**.
 
 ```bash
-npm run deploy:gh
+npm run deploy:gh   # despliegue manual alternativo
 ```
 
 Requiere `gh-pages` y ajusta `base` en `vite.config.js` si el repo no está en la raíz del dominio.
+
+## Roadmap y sugerencias
+
+Ver [SUGERENCIAS.md](SUGERENCIAS.md) para el roadmap completo (SDSS, strain LIGO real, limitaciones peer-review).
 
 ## Generar un GIF de demostración
 
@@ -123,6 +129,50 @@ Esta simulación incluye herramientas de **grado exploratorio** (no reemplaza c�
 - URL con estado: `?mode=binary_merger&M1=30&M2=20&H0=70&theory=firewall&seed=42`  
 - **🔗 Copiar URL reproducible** en carpeta Investigación
 
+### Modo aula
+
+Para clases: el docente fija escena, teoría y cosmología; los alumnos abren un enlace con controles simplificados.
+
+1. Ajusta modo, teoría y preset cosmológico deseados.
+2. En **Controles → Modo aula**, activa **Modo aula** y pulsa **🔗 Copiar enlace alumnos**.
+3. Comparte la URL generada, por ejemplo:
+
+```
+?classroom=1&lockMode=black_hole&lockTheory=firewall&lockPreset=planck2018
+```
+
+| Parámetro | Descripción |
+|-----------|-------------|
+| `classroom=1` | Activa modo aula |
+| `lockMode` | Modo bloqueado (`black_hole`, `cosmology`, `binary_merger`, …) |
+| `lockTheory` | Teoría del horizonte bloqueada |
+| `lockPreset` | Preset cosmológico bloqueado (`planck2018`, `lcdm`, …) |
+| `classRole=teacher` | Vista docente (todos los paneles) |
+
+Los estudiantes ven menos carpetas en la GUI y no pueden cambiar los parámetros bloqueados.
+
+### Preset GW150914 (LIGO)
+
+En **Controles → Choque binario → GW150914 (LIGO) · Abbott+2016** se cargan masas inspiradas en la primera detección de ondas gravitacionales (M₁≈36 M☉, M₂≈29 M☉). Referencia: Abbott et al. (2016), Phys. Rev. Lett. 116, 061102.
+
+### Cómo citar este software
+
+> Reeb, M. (2026). *cosmos-simulation*: Simulación interactiva de agujeros negros y cosmología. Software. https://github.com/reeb-dev/cosmos-simulation
+
+**Zenodo (DOI pendiente):** al publicar un release en Zenodo, sustituye este placeholder:
+
+```bibtex
+@software{reeb2026cosmos_zenodo,
+  author = {Reeb, Manuel},
+  title = {cosmos-simulation: Interactive black hole and cosmology simulator},
+  year = {2026},
+  publisher = {Zenodo},
+  doi = {10.5281/zenodo.XXXXXXX},
+  url = {https://github.com/reeb-dev/cosmos-simulation},
+  note = {Educational/research exploratory tool; not peer-reviewed physics code}
+}
+```
+
 ### API programática (consola del navegador)
 
 ```javascript
@@ -135,9 +185,7 @@ CosmosSim.setSeed(123)
 CosmosSim.sweepH0({ points: 15 }).then(console.table)
 ```
 
-### Cómo citar este software
-
-> Reeb, M. (2026). *cosmos-simulation*: Simulación interactiva de agujeros negros y cosmología. Software. https://github.com/reeb-dev/cosmos-simulation
+### Cita rápida (sin Zenodo)
 
 ```bibtex
 @software{reeb2026cosmos,
@@ -195,6 +243,7 @@ CosmosSim.sweepH0({ points: 15 }).then(console.table)
 - `src/research/physics-metadata.js` — citas y metadatos por fórmula/modo
 - `src/research/cosmos-api.js` — API `window.CosmosSim`
 - `src/ui/research-panel.js` — validación teórico vs sim, barridos, limitaciones
+- `src/ui/classroom-mode.js` — modo aula con bloqueos por URL
 - `src/rendering/galaxy-field.js` — campo galáctico con redshift, Hubble flow y cúmulos
 - `src/rendering/interior-worlds.js` — mundos 3D interiores
 - `src/ui/cosmic-tour.js` — tour automático de 60 s

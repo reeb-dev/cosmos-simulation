@@ -188,6 +188,23 @@ export function createMasterGui(ctx) {
     ctx.binarySim?.configure({ hawkingDeath: v });
   });
   binaryFolder.add({
+    gw150914: () => {
+      binaryState.m1 = 36;
+      binaryState.m2 = 29;
+      binaryState.separation = 48;
+      binaryState.spin1 = 0.3;
+      binaryState.spin2 = 0.2;
+      ctx.binarySim?.configure({
+        m1Solar: 36,
+        m2Solar: 29,
+        separationVis: 48,
+        spin1: 0.3,
+        spin2: 0.2,
+      });
+      ctx.guiSync?.();
+    },
+  }, 'gw150914').name('GW150914 (LIGO) · Abbott+2016');
+  binaryFolder.add({
     start: () => {
       ctx.modeManager?.setMode('binary_merger');
       ctx.binarySim?.configure({
@@ -432,7 +449,7 @@ export function createMasterGui(ctx) {
   ctx.adaptGuiToMode = adaptControlsToMode;
   adaptControlsToMode(ctx.modeManager?.currentMode ?? 'black_hole');
 
-  return { gui, syncFromUniverse, syncToDefaults, adaptControlsToMode };
+  return { gui, syncFromUniverse, syncToDefaults, adaptControlsToMode, controllers, folders };
 }
 
 export { theoryNameById, theoryOptions };
