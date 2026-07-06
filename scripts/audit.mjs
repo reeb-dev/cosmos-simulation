@@ -5,6 +5,9 @@ import { MODE_IDS, SIMULATION_MODES } from '../src/simulation/simulation-modes.j
 import { THEORY_IDS } from '../src/simulation/horizon-theories.js';
 import { FORMULA_REGISTRY } from '../src/physics/formula-registry.js';
 import { createCustomFormula } from '../src/lab/custom-formula.js';
+import { GARGANTUA_VISUAL, gargantuaAngularRs } from '../src/physics/gargantua-preset.js';
+import { getRealismProfile } from '../src/physics/realism-profiles.js';
+import { schwarzschildRadiusVis } from '../src/physics/units.js';
 import es from '../src/i18n/locales/es.js';
 import en from '../src/i18n/locales/en.js';
 
@@ -63,6 +66,42 @@ for (const id of MODE_IDS) {
     ok(`i18n mode name ${id}`);
   } else {
     fail(`i18n mode ${id}`, 'EN name missing or equals ES');
+  }
+}
+
+{
+  const modeCam = SIMULATION_MODES.gargantua?.camera;
+  const presetCam = GARGANTUA_VISUAL.camera;
+  if (
+    modeCam?.z === presetCam.z &&
+    modeCam?.y === presetCam.y &&
+    modeCam?.x === presetCam.x
+  ) {
+    ok('gargantua camera sync preset/mode');
+  } else {
+    fail('gargantua camera sync', 'simulation-modes vs gargantua-preset mismatch');
+  }
+
+  const rs = schwarzschildRadiusVis(GARGANTUA_VISUAL.massSolar);
+  const angRs = gargantuaAngularRs(rs, presetCam.z);
+  if (angRs < 0.14) ok('gargantua angular rs', angRs.toFixed(3));
+  else fail('gargantua angular rs', `too large: ${angRs.toFixed(3)} (max 0.14)`);
+
+  const diskAng = (rs * GARGANTUA_VISUAL.diskOuterMul) / presetCam.z;
+  if (diskAng < 0.52) ok('gargantua disk angular', diskAng.toFixed(3));
+  else fail('gargantua disk angular', `too large: ${diskAng.toFixed(3)}`);
+
+  const profile = getRealismProfile('gargantua');
+  if (profile.diskOuterMul === GARGANTUA_VISUAL.diskOuterMul) {
+    ok('gargantua profile diskOuterMul');
+  } else {
+    fail('gargantua profile', 'diskOuterMul mismatch with preset');
+  }
+
+  if (GARGANTUA_VISUAL.massSolar >= 40 && GARGANTUA_VISUAL.massSolar <= 80) {
+    ok('gargantua mass range', `${GARGANTUA_VISUAL.massSolar} M☉`);
+  } else {
+    fail('gargantua mass', `out of cinematic range: ${GARGANTUA_VISUAL.massSolar}`);
   }
 }
 

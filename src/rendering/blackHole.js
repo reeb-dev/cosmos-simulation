@@ -110,8 +110,12 @@ function makeDiskMaterial(uniforms) {
   });
 }
 
-function diskRadii(rs) {
-  return { inner: rs * 2.55, outer: rs * 8.5 };
+function diskRadii(rs, innerMul = 2.55, outerMul = 8.5, tubeRatio = 0.55) {
+  const inner = rs * innerMul;
+  const outer = rs * outerMul;
+  const major = (inner + outer) * 0.5;
+  const tube = (outer - inner) * tubeRatio;
+  return { inner, outer, major, tube };
 }
 
 const HALO_LAYERS = [
@@ -121,7 +125,10 @@ const HALO_LAYERS = [
   { innerMul: 4.4, outerMul: 6.4, intensity: 0.62, strength: 0.24, tilt: -0.1, z: -0.03 },
 ];
 
-export function createBlackHole(rsVis, spin = 0) {
+export function createBlackHole(rsVis, spin = 0, diskCfg = {}) {
+  const innerMul = diskCfg.innerMul ?? 2.55;
+  const outerMul = diskCfg.outerMul ?? 8.5;
+  const tubeRatio = diskCfg.tubeRatio ?? 0.55;
   const group = new THREE.Group();
   group.userData.spin = spin;
 
@@ -155,9 +162,7 @@ export function createBlackHole(rsVis, spin = 0) {
     volumetric: { value: 1.0 },
   };
 
-  const { inner, outer } = diskRadii(rsVis);
-  const major = (inner + outer) * 0.5;
-  const tube = (outer - inner) * 0.55;
+  const { inner, outer, major, tube } = diskRadii(rsVis, innerMul, outerMul, tubeRatio);
   const diskMat = makeDiskMaterial({ ...baseUniforms });
   const disk = new THREE.Mesh(new THREE.TorusGeometry(major, tube, 64, 320), diskMat);
   disk.rotation.x = -Math.PI / 2;
@@ -225,11 +230,18 @@ export function createBlackHole(rsVis, spin = 0) {
     innerGlow,
     lensedHalos,
     photonSphere,
-    update: (rs, s = 0) => updateBlackHole(group, rs, s, diskMat, photonRing, innerGlow, lensedHalos),
+    update: (rs, s = 0, cfg = {}) => updateBlackHole(group, rs, s, diskMat, photonRing, innerGlow, lensedHalos, {
+      innerMul: cfg.innerMul ?? innerMul,
+      outerMul: cfg.outerMul ?? outerMul,
+      tubeRatio: cfg.tubeRatio ?? tubeRatio,
+    }),
   };
 }
 
-function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensedHalos) {
+function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensedHalos, diskCfg = {}) {
+  const innerMul = diskCfg.innerMul ?? 2.55;
+  const outerMul = diskCfg.outerMul ?? 8.5;
+  const tubeRatio = diskCfg.tubeRatio ?? 0.55;
   const horizon = group.children[0];
   const photonSphere = group.children[1];
   const disk = group.children[2];
@@ -240,9 +252,7 @@ function updateBlackHole(group, rs, spin, diskMat, photonRing, innerGlow, lensed
   photonSphere.geometry.dispose();
   photonSphere.geometry = new THREE.SphereGeometry(rs * 1.5, 32, 32);
 
-  const { inner, outer } = diskRadii(rs);
-  const major = (inner + outer) * 0.5;
-  const tube = (outer - inner) * 0.55;
+  const { inner, outer, major, tube } = diskRadii(rs, innerMul, outerMul, tubeRatio);
 
   disk.geometry.dispose();
   disk.geometry = new THREE.TorusGeometry(major, tube, 64, 320);

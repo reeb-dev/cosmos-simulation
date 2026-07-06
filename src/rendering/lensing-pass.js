@@ -169,7 +169,9 @@ export function createLensingPass(renderer, scene, camera) {
     );
 
     const dist = Math.max(cam.position.distanceTo(bhWorldPos), rsVis * 1.5);
-    const rsScreen = Math.min(0.16, Math.max(0.012, (rsVis / dist) * 1.65));
+    const rsMul = gargantuaMode ? 1.22 : 1.65;
+    const rsCap = gargantuaMode ? 0.09 : 0.14;
+    const rsScreen = Math.min(rsCap, Math.max(0.01, (rsVis / dist) * rsMul));
     lensingPass.uniforms.rsScreen.value = rsScreen;
     const baseLens = Math.min(0.1, (rsVis / dist) * 0.28) * lensMul;
     lensingPass.uniforms.lensStrength.value = gargantuaMode ? baseLens * 1.2 : baseLens;

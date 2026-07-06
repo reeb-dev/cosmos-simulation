@@ -1,15 +1,23 @@
 /** Parámetros visuales calibrados al look de Gargantua (Interstellar). */
 export const GARGANTUA_VISUAL = {
-  massSolar: 100,
+  massSolar: 55,
   spin: 0.99,
   realismMode: 'gargantua',
   theoryId: 'singularity',
-  camera: { x: 0.5, y: 2.4, z: 98, tx: 0, ty: 0, tz: 0 },
+  camera: { x: 0.2, y: 0.65, z: 155, tx: 0, ty: 0, tz: 0 },
+  diskInnerMul: 2.55,
+  diskOuterMul: 4.6,
+  diskTubeRatio: 0.48,
   showLensing: true,
   showGeodesics: false,
   showExpansion: false,
   lifeEnabled: false,
 };
+
+/** Escala angular aproximada: r_s / distancia cámara (debe ser < 0.14 para encuadre cinematográfico). */
+export function gargantuaAngularRs(rsVis, cameraZ) {
+  return rsVis / Math.max(cameraZ, 1);
+}
 
 /**
  * Aplica parámetros Gargantua sin cambiar de modo (lo invoca setMode('gargantua')).

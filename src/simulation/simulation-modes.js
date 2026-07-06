@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { t } from '../i18n/i18n.js';
 import { showToast } from '../ui/toast.js';
-import { applyGargantuaSettings } from '../physics/gargantua-preset.js';
+import { applyGargantuaSettings, GARGANTUA_VISUAL } from '../physics/gargantua-preset.js';
 
 /**
  * Modos de simulación: controlan escena, cámara y HUD.
@@ -29,9 +29,9 @@ export const SIMULATION_MODES = {
     id: 'gargantua',
     name: 'Gargantua (Interestelar)',
     subtitle: 'Disco de canto · lensing fuerte · anillo de fotones · estilo película',
-    camera: { x: 0.2, y: 0.12, z: 58, tx: 0, ty: 0, tz: 0 },
-    maxDistance: 350,
-    minDistanceFactor: 0.28,
+    camera: GARGANTUA_VISUAL.camera,
+    maxDistance: 420,
+    minDistanceFactor: 0.32,
     fogDensity: 0.0001,
     autoTheory: 'singularity',
     scene: {

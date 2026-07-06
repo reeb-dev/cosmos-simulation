@@ -151,10 +151,19 @@ const cameraLife = createCameraLife(controls, camera);
 cameraLife.resetCamera(camera, controls);
 const bhWorldPos = new THREE.Vector3(0, 0, 0);
 
+function getDiskCfg() {
+  const profile = getRealismProfile(engine.universe.realismMode ?? 'realistic');
+  return {
+    innerMul: profile.diskInnerMul ?? 2.55,
+    outerMul: profile.diskOuterMul ?? 8.5,
+    tubeRatio: profile.diskTubeRatio ?? 0.55,
+  };
+}
+
 function onRsChange() {
   const rs = engine.universe.rsVis;
   const spin = engine.universe.spin;
-  bh.update(rs, spin);
+  bh.update(rs, spin, getDiskCfg());
   horizonSim.setRs(rs);
   setMinDistance(rs);
   horizonMembrane.geometry.dispose();
